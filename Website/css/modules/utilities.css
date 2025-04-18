@@ -1,0 +1,9 @@
+/* 
+ * utilities.css
+ * Helper classes and utility styles
+ */
+
+/* Utilities */
+.hidden {
+    display: none !important;
+}

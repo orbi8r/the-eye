@@ -1,0 +1,26 @@
+/*
+ * THE EYE - Main Stylesheet
+ * This file imports all modular CSS components
+ */
+
+/* Import base variables and styles */
+@import 'modules/variables.css';
+
+/* Import layout components */
+@import 'modules/layout.css';
+@import 'modules/sidebar.css';
+
+/* Import UI components */
+@import 'modules/components.css';
+@import 'modules/room-view.css';
+@import 'modules/stats-panels.css';
+@import 'modules/auth.css';
+
+/* Import animations */
+@import 'modules/animations.css';
+
+/* Import responsive styles and utilities */
+@import 'modules/responsive.css';
+@import 'modules/utilities.css';
+
+/* Put any custom overrides here */

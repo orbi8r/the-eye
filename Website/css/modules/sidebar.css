@@ -1,0 +1,88 @@
+/* 
+ * sidebar.css
+ * Sidebar navigation styles
+ */
+
+.sidebar {
+    width: 80px; /* Slightly increased width */
+    background-color: var(--dark-color);
+    padding: 20px 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    box-shadow: var(--shadow);
+    position: relative;
+    z-index: 10;
+    transition: width 0.3s ease, background-color 0.3s ease;
+    box-sizing: border-box; /* Ensure padding is included in width */
+}
+
+.sidebar:hover {
+    width: 220px;
+}
+
+.sidebar-item {
+    width: 100%;
+    padding: 15px 0; /* Adjusted padding for centered icon */
+    display: flex; /* Ensure flex layout */
+    justify-content: flex-start; /* Align items to the start */
+    padding-left: 20px; /* Add padding to push icon right (center 40px icon in 80px bar) */
+    align-items: center; /* Vertically center items */
+    position: relative;
+    cursor: pointer;
+    color: var(--text-muted);
+    font-weight: 500;
+    margin-bottom: 10px;
+    border-left: 3px solid transparent; /* Prepare for animation */
+    box-sizing: border-box; /* Include padding in width */
+    transition: background-color 0.3s ease, border-left-color 0.3s ease; /* Add border transition */
+}
+
+.sidebar-item.active {
+    color: var(--text-color);
+}
+
+.sidebar-item:hover {
+    background-color: rgba(255, 255, 255, 0.05); /* Keep subtle background */
+    /* Use border animation instead of ::after */
+    animation: sidebar-edge 0.5s forwards;
+}
+
+.sidebar-icon {
+    font-size: 24px;
+    display: flex;
+    align-items: center;
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    background-color: rgba(255, 255, 255, 0.05);
+    margin-right: 0; /* Remove right margin in collapsed state */
+    flex-shrink: 0; /* Prevent icon from shrinking */
+    justify-content: center; /* Center horizontally */
+}
+
+.sidebar-icon i { /* Target the icon element directly */
+    position: relative; /* Needed for transform or positioning adjustments */
+    /* Nudge the icon slightly for better visual centering */
+    transform: translateX(1px); 
+}
+
+.sidebar:hover .sidebar-icon {
+    margin-right: 15px; /* Add margin back when expanded */
+}
+
+.sidebar-text {
+    opacity: 0;
+    transition: var(--transition);
+    white-space: nowrap;
+    font-size: 14px;
+    margin-left: 0; /* Remove previous margin */
+}
+
+.sidebar:hover .sidebar-text {
+    opacity: 1;
+}
+
+.sidebar:hover .sidebar-item {
+    padding-left: 20px; /* Maintain padding or adjust as needed for expanded view */
+}

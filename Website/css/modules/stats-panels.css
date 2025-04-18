@@ -1,0 +1,120 @@
+/* 
+ * stats-panels.css
+ * Styles for statistics panels and dashboard data displays
+ */
+
+/* Stats panels */
+.stats-panels {
+    grid-column: 2;
+    grid-row: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    height: 100%;
+}
+
+.stat-panel {
+    background-color: var(--dark-color);
+    border-radius: 15px;
+    padding: 20px;
+    flex: 1;
+    position: relative;
+    overflow: hidden;
+    transition: var(--transition);
+    box-shadow: var(--shadow);
+    border: 1px solid transparent; /* Add border for smooth animation */
+}
+
+.stat-panel:hover {
+    transform: translateY(-5px);
+    border-color: transparent; /* Hide border during animation */
+    animation-name: edge-glow;
+    animation-iteration-count: infinite;
+    animation-timing-function: linear;
+    animation-duration: 2s; /* Changed duration to 2s */
+}
+
+.stat-panel::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 3px;
+    background: linear-gradient(to right, var(--accent-color), var(--accent-color-2));
+    opacity: 0;
+    transition: var(--transition);
+}
+
+.stat-panel:hover::before {
+    opacity: 1;
+}
+
+.stat-title {
+    font-size: 16px;
+    font-weight: 500;
+    margin-bottom: 15px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.stat-value {
+    font-size: 32px;
+    font-weight: 700;
+    margin-bottom: 15px;
+}
+
+/* Loading overlay styles */
+.loading-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(11, 12, 20, 0.8);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    z-index: 10;
+    border-radius: 15px;
+    transition: opacity 0.5s ease;
+}
+
+.loading-overlay.fade-out {
+    opacity: 0;
+}
+
+.loading-text {
+    color: var(--text-color);
+    font-size: 16px;
+    animation: pulse 1.5s infinite;
+}
+
+/* Coming soon message */
+.coming-soon {
+    text-align: center;
+    font-style: italic;
+    color: var(--text-muted);
+    padding: 40px;
+}
+
+.coming-soon-message {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    min-height: 300px;
+    text-align: center;
+    color: var(--text-muted);
+}
+
+.coming-soon-message h2 {
+    margin-bottom: 10px;
+    color: var(--text-color);
+}
+
+.coming-soon-message p {
+    max-width: 400px;
+}

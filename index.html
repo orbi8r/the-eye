@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>THE EYE - Room Monitoring</title>
+    <link rel="stylesheet" href="Website/css/styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/heatmap.js@2.0.5/build/heatmap.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <div class="sidebar-item active" data-view="dashboard">
+                <div class="sidebar-icon">
+                    <i class="fas fa-home"></i>
+                </div>
+                <span class="sidebar-text">Dashboard</span>
+            </div>
+            
+            <div class="sidebar-item" data-view="room-selector">
+                <div class="sidebar-icon">
+                    <i class="fas fa-door-open"></i>
+                </div>
+                <span class="sidebar-text">Room Selector</span>
+            </div>
+            
+            <div class="sidebar-item" data-view="login">
+                <div class="sidebar-icon">
+                    <i class="fas fa-user-shield"></i>
+                </div>
+                <span class="sidebar-text">Admin Login</span>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <!-- Header -->
+            <div class="header">
+                <div class="logo-container">
+                    <h1 class="logo-text">THE EYE</h1>
+                    <div class="eye-container">
+                        <div class="eye">
+                            <div class="pupil"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Dashboard View -->
+            <div class="tab-content active" id="dashboard-view">
+                <div class="grid-container">
+                    <!-- Room View -->
+                    <div class="room-view">
+                        <h2 class="room-title">Room Visualization</h2>
+                        <div class="room-container">
+                            <div id="heatmap-container"></div>
+                            <div id="people-markers"></div>
+                        </div>
+                    </div>
+
+                    <!-- Stats Panels -->
+                    <div class="stats-panels">
+                        <!-- Room Fullness -->
+                        <div class="stat-panel">
+                            <div class="stat-title">
+                                <span>Room Fullness</span>
+                                <i class="fas fa-users"></i>
+                            </div>
+                            <div class="stat-value" id="people-count">0</div>
+                            <div class="progress-container">
+                                <div class="progress-bar fullness" id="room-fullness-bar" style="width: 0%"></div>
+                            </div>
+                            <div class="progress-labels">
+                                <span>0</span>
+                                <span id="room-fullness">0%</span>
+                                <span>40</span>
+                            </div>
+                        </div>
+
+                        <!-- Noise Level -->
+                        <div class="stat-panel">
+                            <div class="stat-title">
+                                <span>Noise Level</span>
+                                <i class="fas fa-volume-up"></i>
+                            </div>
+                            <div class="stat-value" id="noise-level">--</div>
+                            <div class="progress-container">
+                                <div class="progress-bar sound" id="noise-bar" style="width: 0%"></div>
+                            </div>
+                            <div class="progress-labels">
+                                <span>0dB</span>
+                                <span>Coming Soon</span>
+                                <span>120dB</span>
+                            </div>
+                        </div>
+
+                        <!-- Air Quality -->
+                        <div class="stat-panel">
+                            <div class="stat-title">
+                                <span>Air Quality</span>
+                                <i class="fas fa-wind"></i>
+                            </div>
+                            <div class="stat-value" id="air-quality">--</div>
+                            <div class="progress-container">
+                                <div class="progress-bar air" id="air-quality-bar" style="width: 0%"></div>
+                            </div>
+                            <div class="progress-labels">
+                                <span>Good</span>
+                                <span>Coming Soon</span>
+                                <span>Poor</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Room Selector View -->
+            <div class="tab-content" id="room-selector-view">
+                <h2 class="section-title">Room Selection</h2>
+                <div class="rooms-grid">
+                    <div class="room-card active" data-room="1">
+                        <div class="room-card-header">
+                            <h3>Room 1</h3>
+                            <span class="room-status active">Active</span>
+                        </div>
+                        <div class="room-card-content">
+                            <div class="room-preview">
+                                <div class="room-preview-content">
+                                    <div class="mini-heatmap"></div>
+                                </div>
+                            </div>
+                            <div class="room-info">
+                                <div class="info-item">
+                                    <i class="fas fa-users"></i>
+                                    <span id="room1-count">0</span> people
+                                </div>
+                                <div class="info-item">
+                                    <i class="fas fa-clock"></i>
+                                    <span>Live</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Coming soon rooms -->
+                    <div class="room-card disabled" data-room="2">
+                        <div class="room-card-header">
+                            <h3>Room 2</h3>
+                            <span class="room-status">Coming Soon</span>
+                        </div>
+                        <div class="room-card-content">
+                            <div class="coming-soon-overlay">
+                                <i class="fas fa-hourglass"></i>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="room-card disabled" data-room="3">
+                        <div class="room-card-header">
+                            <h3>Room 3</h3>
+                            <span class="room-status">Coming Soon</span>
+                        </div>
+                        <div class="room-card-content">
+                            <div class="coming-soon-overlay">
+                                <i class="fas fa-hourglass"></i>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="room-card disabled" data-room="4">
+                        <div class="room-card-header">
+                            <h3>Room 4</h3>
+                            <span class="room-status">Coming Soon</span>
+                        </div>
+                        <div class="room-card-content">
+                            <div class="coming-soon-overlay">
+                                <i class="fas fa-hourglass"></i>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="room-card disabled" data-room="5">
+                        <div class="room-card-header">
+                            <h3>Room 5</h3>
+                            <span class="room-status">Coming Soon</span>
+                        </div>
+                        <div class="room-card-content">
+                            <div class="coming-soon-overlay">
+                                <i class="fas fa-hourglass"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div id="room-details-panel" class="hidden">
+                    <div class="panel-header">
+                        <button id="back-to-rooms" class="btn-icon">
+                            <i class="fas fa-arrow-left"></i> Back to Rooms
+                        </button>
+                        <h3 id="room-detail-title">Room Details</h3>
+                    </div>
+                    <div class="panel-content">
+                        <div class="coming-soon-message">
+                            <i class="fas fa-door-open" style="font-size: 48px; margin-bottom: 20px; color: var(--accent-color);"></i>
+                            <h2>More Rooms Coming Soon</h2>
+                            <p>We're currently monitoring only one room. Additional rooms will be available in future updates.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Login View -->
+            <div class="tab-content" id="login-view">
+                <div class="login-container">
+                    <div class="auth-tabs">
+                        <div class="auth-tab active" data-auth="login">Login</div>
+                        <div class="auth-tab" data-auth="register">Register</div>
+                    </div>
+
+                    <!-- Login Form -->
+                    <div class="auth-content" id="login-content">
+                        <div class="auth-form">
+                            <div class="form-group">
+                                <label for="login-email">Email</label>
+                                <input type="email" id="login-email" class="form-control" placeholder="Enter your email">
+                            </div>
+                            <div class="form-group password-input-container">
+                                <label for="login-password">Password</label>
+                                <input type="password" id="login-password" class="form-control" placeholder="Enter your password">
+                                <i class="fas fa-eye toggle-password" data-target="login-password"></i>
+                            </div>
+                            <button class="btn btn-block" id="login-btn">Login</button>
+                        </div>
+                    </div>
+
+                    <!-- Register Form -->
+                    <div class="auth-content" id="register-content">
+                        <div class="auth-form">
+                            <div class="form-group">
+                                <label for="register-email">Email</label>
+                                <input type="email" id="register-email" class="form-control" placeholder="Enter your email">
+                            </div>
+                            <div class="form-group password-input-container">
+                                <label for="register-password">Password</label>
+                                <input type="password" id="register-password" class="form-control" placeholder="Create a password">
+                                <i class="fas fa-eye toggle-password" data-target="register-password"></i>
+                            </div>
+                            <div class="form-group password-input-container">
+                                <label for="register-confirm-password">Confirm Password</label>
+                                <input type="password" id="register-confirm-password" class="form-control" placeholder="Confirm your password">
+                                <i class="fas fa-eye toggle-password" data-target="register-confirm-password"></i>
+                            </div>
+                            <button class="btn btn-block" id="register-btn">Register</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Admin Dashboard View (Hidden until logged in) -->
+            <div class="tab-content" id="admin-view">
+                <h2>Admin Dashboard</h2>
+                
+                <!-- Charts -->
+                <div class="chart-container">
+                    <h3>People Count Over Time</h3>
+                    <canvas id="people-chart"></canvas>
+                </div>
+                
+                <div class="chart-container">
+                    <h3>Historical Heatmap</h3>
+                    <div class="filter-controls">
+                        <input type="date" id="date-start" class="date-picker">
+                        <input type="date" id="date-end" class="date-picker">
+                        <button id="apply-date-range" class="btn">Apply</button>
+                    </div>
+                    <div id="historical-heatmap"></div>
+                </div>
+                
+                <!-- Control Panel (To be implemented) -->
+                <div class="chart-container">
+                    <h3>Light Control Panel</h3>
+                    <p>Control panel for 4-channel relay will be available soon.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Info Label for Tooltips -->
+    <div class="info-label" id="info-label"></div>
+
+    <script src="Website/js/supabase.js"></script>
+    <script src="Website/js/visualization.js"></script>
+    <script src="Website/js/charts.js"></script>
+    <script src="Website/js/auth.js"></script>
+    <script src="Website/js/main.js"></script>
+</body>
+</html>

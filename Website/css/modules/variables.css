@@ -1,0 +1,35 @@
+/* 
+ * variables.css
+ * Contains CSS custom properties and basic element styling
+ */
+
+:root {
+    --primary-color: #1a1c24;
+    --secondary-color: #131620;
+    --accent-color: #7e53f8;
+    --accent-color-2: #ff53b4;
+    --accent-color-3: #53d8ff;
+    --dark-color: #0b0c14;
+    --text-color: #e6e9ef;
+    --text-muted: #9ba1b0;
+    --shadow: 0 8px 16px rgba(0, 0, 0, 0.4);
+    --glow-shadow: 0 0 30px rgba(126, 83, 248, 0.2);
+    --transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Inter', 'Segoe UI', sans-serif;
+}
+
+body {
+    background-color: var(--primary-color);
+    color: var(--text-color);
+    line-height: 1.6;
+    overflow-x: hidden;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}

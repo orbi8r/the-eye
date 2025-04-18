@@ -1,0 +1,84 @@
+/* 
+ * layout.css
+ * Contains main layout structures and grid system
+ */
+
+/* Main layout */
+.app-container {
+    display: flex;
+    min-height: 100vh;
+    width: 100%;
+}
+
+/* Main content */
+.main-content {
+    flex: 1;
+    padding: 30px;
+    position: relative;
+    overflow: hidden;
+}
+
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 30px;
+}
+
+.logo-container {
+    display: flex;
+    align-items: center;
+}
+
+.logo-text {
+    font-size: 36px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    background: linear-gradient(to right, var(--accent-color), var(--accent-color-2));
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin-right: 15px;
+}
+
+/* Grid layout */
+.grid-container {
+    display: grid;
+    grid-template-columns: 1fr 350px;
+    grid-template-rows: auto;
+    gap: 25px;
+    height: calc(100vh - 150px);
+}
+
+/* Tab content */
+.tab-content {
+    display: none;
+    animation: fadeIn 0.5s ease;
+}
+
+.tab-content.active {
+    display: block;
+}
+
+/* Section titles */
+.section-title {
+    margin-bottom: 20px;
+    font-size: 24px;
+    color: var(--text-color);
+}
+
+/* Panel header styling */
+.panel-header {
+    display: flex;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.panel-header h3 {
+    margin-left: 15px;
+    font-size: 18px;
+}
+
+.panel-content {
+    min-height: 300px;
+}

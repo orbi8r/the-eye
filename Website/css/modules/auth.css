@@ -1,0 +1,115 @@
+/* 
+ * auth.css
+ * Styles for authentication and login forms
+ */
+
+/* Login Section */
+.login-container {
+    max-width: 800px;
+    margin: 50px auto;
+    padding: 30px;
+    background-color: var(--dark-color);
+    border-radius: 15px;
+    box-shadow: var(--shadow);
+    position: relative;
+    overflow: hidden;
+}
+
+.login-container::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 3px;
+    background: linear-gradient(to right, var(--accent-color), var(--accent-color-2), var(--accent-color-3));
+}
+
+.auth-tabs {
+    display: flex;
+    margin-bottom: 25px;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+}
+
+.auth-tab {
+    padding: 10px 20px;
+    cursor: pointer;
+    color: var(--text-muted);
+    transition: var(--transition);
+    position: relative;
+    border-bottom: 2px solid transparent;
+}
+
+.auth-tab.active {
+    color: var(--text-color);
+}
+
+.auth-tab::after {
+    content: '';
+    position: absolute;
+    bottom: -1px;
+    left: 0;
+    width: 0;
+    height: 2px;
+    background: linear-gradient(to right, var(--accent-color), var(--accent-color-2));
+    transition: var(--transition);
+}
+
+.auth-tab.active::after {
+    width: 100%;
+}
+
+.auth-tab:hover {
+    color: var(--accent-color);
+    /* Replace border with animation? Or keep border? Let's try keeping border for tabs */
+    /* animation: edge-glow 2s infinite ease-in-out; */
+}
+
+.auth-form {
+    margin-top: 20px;
+}
+
+/* Fix auth content display */
+.auth-content {
+    display: none;
+}
+
+.auth-content.active {
+    display: block;
+}
+
+/* Password visibility toggle */
+.password-input-container {
+    position: relative;
+}
+
+.toggle-password {
+    position: absolute;
+    right: 15px;
+    top: 70%; /* Adjust vertical position relative to the input */
+    transform: translateY(-50%);
+    cursor: pointer;
+    color: var(--text-muted);
+    transition: color var(--transition);
+}
+
+.toggle-password:hover {
+    color: var(--accent-color);
+}
+
+/* CSS for blinking cursor in admin panel login */
+.cursor-blink {
+    display: inline-block;
+    width: 2px;
+    height: 20px;
+    background-color: var(--accent-color);
+    animation: blink 1s infinite;
+    margin-left: 2px;
+    vertical-align: middle;
+}
+
+@keyframes blink {
+    0% { opacity: 1; }
+    50% { opacity: 0; }
+    100% { opacity: 1; }
+}

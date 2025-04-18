@@ -1,7 +1,7 @@
-from Server.fetch_data import fetch_latest_image
-from Server.yolo import detect_humans
-from Server.uv_conversion import boxes_to_uv
-from Server.supabase_upload import send_uv_to_supabase
+from fetch_data import fetch_latest_image
+from yolo import detect_humans
+from uv_conversion import boxes_to_uv
+from supabase_upload import send_uv_to_supabase
 import time
 
 
