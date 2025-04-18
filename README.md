@@ -1,5 +1,7 @@
 # the-eye
 
+Deployed: https://orbi8r.github.io/the-eye/
+
 ## Project Progress Checklist
 
 ### Part 1: ESPCam & ESP32 Data Collection
