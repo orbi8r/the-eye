@@ -1,4 +1,5 @@
 # the-eye
+Deployed: https://orbi8r.github.io/the-eye/
 
 ## Project Progress Checklist
 
