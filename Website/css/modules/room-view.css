@@ -136,11 +136,22 @@
 .chart-container {
     width: 100%;
     min-height: 300px;
+    max-height: 400px; /* Add max height to prevent growing too large */
     position: relative;
     background-color: var(--dark-color);
     border-radius: 15px;
     padding: 20px;
     margin-bottom: 25px;
+    overflow: hidden; /* Hide overflow content */
+}
+
+/* Add specific height constraint for the admin panel's chart containers */
+#admin-view .chart-container {
+    height: 400px; /* Fixed height */
+}
+
+#admin-view canvas {
+    max-height: 350px; /* Ensure canvas doesn't get too tall */
 }
 
 #historical-heatmap {

@@ -2,6 +2,7 @@
 let peopleChart;
 let timeSeriesChart;
 let heatmapDistribution;
+let peopleCountChart;
 
 // Initialize charts
 function initCharts() {
@@ -37,7 +38,8 @@ function setupPeopleChart() {
         },
         options: {
             responsive: true,
-            maintainAspectRatio: false,
+            maintainAspectRatio: true,
+            aspectRatio: 2.5, // Control aspect ratio for better visibility
             plugins: {
                 legend: {
                     position: 'top',
@@ -431,6 +433,114 @@ function updatePeopleChart(data) {
     
     // Update chart
     peopleChart.update();
+}
+
+// Create or update the people count chart in the admin panel
+function updatePeopleCountChart(data) {
+    const ctx = document.getElementById('people-count-chart');
+    if (!ctx) return;
+    
+    // Extract timestamps and people counts
+    const timestamps = data.map(item => new Date(item.timestamp));
+    const peopleCounts = data.map(item => item.uv_coords ? item.uv_coords.length : 0);
+    
+    // Destroy previous chart if it exists
+    if (peopleCountChart) {
+        peopleCountChart.destroy();
+    }
+    
+    // Create new chart
+    peopleCountChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: timestamps,
+            datasets: [{
+                label: 'People Count',
+                data: peopleCounts,
+                borderColor: '#7e53f8',
+                backgroundColor: createGradient(ctx, '#7e53f8', 'transparent'),
+                borderWidth: 2,
+                fill: true,
+                tension: 0.3,
+                pointRadius: 3,
+                pointHoverRadius: 5,
+                pointBackgroundColor: '#ff53b4'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            aspectRatio: 2.5,
+            plugins: {
+                legend: {
+                    position: 'top',
+                    labels: {
+                        color: '#9ba1b0'
+                    }
+                },
+                tooltip: {
+                    mode: 'index',
+                    intersect: false,
+                    backgroundColor: '#0b0c14',
+                    titleColor: '#e6e9ef',
+                    bodyColor: '#9ba1b0',
+                    borderColor: '#7e53f8',
+                    borderWidth: 1,
+                    callbacks: {
+                        title: function(tooltipItems) {
+                            return new Date(tooltipItems[0].parsed.x).toLocaleString();
+                        }
+                    }
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    grid: {
+                        color: 'rgba(255, 255, 255, 0.05)'
+                    },
+                    ticks: {
+                        color: '#9ba1b0'
+                    },
+                    title: {
+                        display: true,
+                        text: 'Number of People',
+                        color: '#9ba1b0'
+                    }
+                },
+                x: {
+                    type: 'time',
+                    time: {
+                        unit: 'minute',
+                        tooltipFormat: 'MMM d, yyyy, HH:mm:ss'
+                    },
+                    grid: {
+                        display: false
+                    },
+                    ticks: {
+                        color: '#9ba1b0',
+                        maxTicksLimit: 10,
+                        autoSkip: true
+                    },
+                    title: {
+                        display: true,
+                        text: 'Time',
+                        color: '#9ba1b0'
+                    }
+                }
+            },
+            interaction: {
+                intersect: false,
+                mode: 'index'
+            },
+            animation: {
+                duration: 1000,
+                easing: 'easeOutQuart'
+            }
+        }
+    });
+    
+    console.log('People count chart updated with', data.length, 'data points');
 }
 
 // Process hourly distribution of people count

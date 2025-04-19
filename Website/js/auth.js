@@ -216,6 +216,18 @@ async function handleLogout() {
 
         currentUser = null;
         
+        // Remove admin panel and logout button from sidebar
+        const adminItem = document.querySelector('.sidebar-item[data-view="admin"]');
+        const logoutItem = document.querySelector('.sidebar-item:has(.fa-sign-out-alt)');
+        
+        if (adminItem && adminItem.parentNode) {
+            adminItem.parentNode.removeChild(adminItem);
+        }
+        
+        if (logoutItem && logoutItem.parentNode) {
+            logoutItem.parentNode.removeChild(logoutItem);
+        }
+        
         // Switch back to login view
         const sidebarItems = document.querySelectorAll('.sidebar-item');
         const loginItem = Array.from(sidebarItems).find(item => item.getAttribute('data-view') === 'login');

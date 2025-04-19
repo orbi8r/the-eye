@@ -88,6 +88,54 @@ async function fetchLatestUVData() {
     }
 }
 
+// Fetch latest people data points (limited to specified count)
+async function fetchLatestPeopleData(limit = 100) {
+    try {
+        console.log(`Fetching latest ${limit} data points...`);
+        
+        // Query Supabase for the latest data entries - using people_uv table instead of uv_data
+        const { data, error } = await supabaseClient
+            .from('people_uv')  // Changed from 'uv_data' to 'people_uv'
+            .select('*')
+            .order('created_at', { ascending: false })  // Using created_at instead of timestamp
+            .limit(limit);
+        
+        if (error) {
+            console.error('Error fetching latest people data:', error);
+            showToast('Failed to fetch latest data', 'error', 'Database Error');
+            return null;
+        }
+        
+        if (!data || data.length === 0) {
+            console.warn('No data returned from database');
+            showToast('No data available', 'info', 'Data Query');
+            return [];
+        }
+        
+        // Reverse the array to get chronological order (oldest first)
+        const sortedData = data.reverse();
+        
+        // Parse UV coordinates for each data point
+        sortedData.forEach(item => {
+            if (item.uv_coords && typeof item.uv_coords === 'string') {
+                try {
+                    item.uv_coords = JSON.parse(item.uv_coords);
+                } catch (e) {
+                    console.error('Error parsing UV coordinates:', e);
+                    item.uv_coords = [];
+                }
+            }
+        });
+        
+        console.log(`Retrieved ${sortedData.length} data points`);
+        return sortedData;
+    } catch (err) {
+        console.error('Unexpected error fetching latest people data:', err);
+        showToast('An unexpected error occurred', 'error', 'Error');
+        return null;
+    }
+}
+
 // Fetch initial data and start polling
 async function fetchInitialData() {
     showToast('Connecting to Supabase...', 'info', 'Connection');

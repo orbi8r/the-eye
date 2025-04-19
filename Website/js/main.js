@@ -6,6 +6,7 @@ document.addEventListener('DOMContentLoaded', () => {
     setupEyeAnimation();
     setupUIInteractions();
     setupRoomSelector();
+    setupAdminTabs();
 });
 
 // Initialize the application
@@ -193,6 +194,83 @@ function simulateStats() {
     
     // Update every 5 seconds with slight variations
     setInterval(updateSimulatedStats, 5000);
+}
+
+// Setup admin tabs functionality
+function setupAdminTabs() {
+    const adminTabs = document.querySelectorAll('.admin-tab');
+    const adminTabContents = document.querySelectorAll('.admin-tab-content');
+    
+    adminTabs.forEach(tab => {
+        tab.addEventListener('click', () => {
+            const tabId = tab.getAttribute('data-admin-tab');
+            
+            // Update active tab
+            adminTabs.forEach(t => t.classList.remove('active'));
+            tab.classList.add('active');
+            
+            // Show corresponding content
+            adminTabContents.forEach(content => {
+                content.classList.remove('active');
+                if (content.id === `${tabId}-tab`) {
+                    content.classList.add('active');
+                }
+            });
+        });
+    });
+    
+    // Set up refresh buttons for the admin charts
+    setupAdminChartRefresh();
+}
+
+// Setup refresh buttons for admin charts
+function setupAdminChartRefresh() {
+    // People count refresh button
+    const refreshPeopleCountBtn = document.getElementById('refresh-people-count');
+    if (refreshPeopleCountBtn) {
+        refreshPeopleCountBtn.addEventListener('click', async () => {
+            try {
+                refreshPeopleCountBtn.disabled = true;
+                refreshPeopleCountBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Loading...';
+                
+                // Fetch last 100 data points
+                const peopleData = await fetchLatestPeopleData(100);
+                
+                if (peopleData) {
+                    updatePeopleCountChart(peopleData);
+                    showToast('People count data updated successfully', 'success', 'Data Updated');
+                }
+            } catch (err) {
+                console.error('Error refreshing people count data:', err);
+                showToast('Failed to refresh people count data', 'error', 'Error');
+            } finally {
+                refreshPeopleCountBtn.disabled = false;
+                refreshPeopleCountBtn.innerHTML = '<i class="fas fa-sync-alt"></i> Refresh Data';
+            }
+        });
+    }
+    
+    // Setup other refresh buttons (will be implemented later)
+    const refreshSoundBtn = document.getElementById('refresh-sound-level');
+    if (refreshSoundBtn) {
+        refreshSoundBtn.addEventListener('click', () => {
+            showToast('Sound level monitoring coming soon', 'info', 'Coming Soon');
+        });
+    }
+    
+    const refreshAirQualityBtn = document.getElementById('refresh-air-quality');
+    if (refreshAirQualityBtn) {
+        refreshAirQualityBtn.addEventListener('click', () => {
+            showToast('Air quality monitoring coming soon', 'info', 'Coming Soon');
+        });
+    }
+    
+    const refreshPictureBtn = document.getElementById('refresh-latest-picture');
+    if (refreshPictureBtn) {
+        refreshPictureBtn.addEventListener('click', () => {
+            showToast('Latest picture feature coming soon', 'info', 'Coming Soon');
+        });
+    }
 }
 
 // Main function to update UI with new data

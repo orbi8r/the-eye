@@ -265,26 +265,184 @@
             <div class="tab-content" id="admin-view">
                 <h2>Admin Dashboard</h2>
                 
-                <!-- Charts -->
-                <div class="chart-container">
-                    <h3>People Count Over Time</h3>
-                    <canvas id="people-chart"></canvas>
-                </div>
-                
-                <div class="chart-container">
-                    <h3>Historical Heatmap</h3>
-                    <div class="filter-controls">
-                        <input type="date" id="date-start" class="date-picker">
-                        <input type="date" id="date-end" class="date-picker">
-                        <button id="apply-date-range" class="btn">Apply</button>
+                <!-- Admin Tab Navigation -->
+                <div class="admin-tabs">
+                    <div class="admin-tab active" data-admin-tab="people-count">
+                        <i class="fas fa-users"></i> People Count
                     </div>
-                    <div id="historical-heatmap"></div>
+                    <div class="admin-tab" data-admin-tab="sound-level">
+                        <i class="fas fa-volume-up"></i> Sound Level
+                    </div>
+                    <div class="admin-tab" data-admin-tab="air-quality">
+                        <i class="fas fa-wind"></i> Air Quality
+                    </div>
+                    <div class="admin-tab" data-admin-tab="light-control">
+                        <i class="fas fa-lightbulb"></i> Light Control
+                    </div>
+                    <div class="admin-tab" data-admin-tab="latest-picture">
+                        <i class="fas fa-image"></i> Latest Picture
+                    </div>
+                    <div class="admin-tab" data-admin-tab="calibration">
+                        <i class="fas fa-sliders-h"></i> Calibration
+                    </div>
                 </div>
                 
-                <!-- Control Panel (To be implemented) -->
-                <div class="chart-container">
-                    <h3>Light Control Panel</h3>
-                    <p>Control panel for 4-channel relay will be available soon.</p>
+                <!-- Admin Tab Contents -->
+                <div class="admin-tab-contents">
+                    <!-- People Count Tab -->
+                    <div class="admin-tab-content active" id="people-count-tab">
+                        <div class="admin-panel-header">
+                            <h3>People Count (Last 100 Data Points)</h3>
+                            <button id="refresh-people-count" class="btn btn-secondary">
+                                <i class="fas fa-sync-alt"></i> Refresh Data
+                            </button>
+                        </div>
+                        <div class="chart-container">
+                            <canvas id="people-count-chart"></canvas>
+                        </div>
+                    </div>
+                    
+                    <!-- Sound Level Tab -->
+                    <div class="admin-tab-content" id="sound-level-tab">
+                        <div class="admin-panel-header">
+                            <h3>Sound Level (Last 100 Data Points)</h3>
+                            <button id="refresh-sound-level" class="btn btn-secondary">
+                                <i class="fas fa-sync-alt"></i> Refresh Data
+                            </button>
+                        </div>
+                        <div class="chart-container">
+                            <canvas id="sound-level-chart"></canvas>
+                        </div>
+                        <div class="coming-soon-message">
+                            <i class="fas fa-volume-up" style="font-size: 48px; margin-bottom: 20px; color: var(--accent-color);"></i>
+                            <h2>Coming Soon</h2>
+                            <p>Sound level monitoring will be available in a future update.</p>
+                        </div>
+                    </div>
+                    
+                    <!-- Air Quality Tab -->
+                    <div class="admin-tab-content" id="air-quality-tab">
+                        <div class="admin-panel-header">
+                            <h3>Air Quality (Last 100 Data Points)</h3>
+                            <button id="refresh-air-quality" class="btn btn-secondary">
+                                <i class="fas fa-sync-alt"></i> Refresh Data
+                            </button>
+                        </div>
+                        <div class="chart-container">
+                            <canvas id="air-quality-chart"></canvas>
+                        </div>
+                        <div class="coming-soon-message">
+                            <i class="fas fa-wind" style="font-size: 48px; margin-bottom: 20px; color: var(--accent-color);"></i>
+                            <h2>Coming Soon</h2>
+                            <p>Air quality monitoring will be available in a future update.</p>
+                        </div>
+                    </div>
+                    
+                    <!-- Light Control Tab -->
+                    <div class="admin-tab-content" id="light-control-tab">
+                        <div class="admin-panel-header">
+                            <h3>Light Control Panel</h3>
+                        </div>
+                        <div class="light-control-panel">
+                            <div class="light-controls">
+                                <div class="control-group">
+                                    <label for="relay-1">Relay 1</label>
+                                    <div class="switch">
+                                        <input type="checkbox" id="relay-1" class="relay-switch" data-relay="1">
+                                        <span class="slider round"></span>
+                                    </div>
+                                </div>
+                                <div class="control-group">
+                                    <label for="relay-2">Relay 2</label>
+                                    <div class="switch">
+                                        <input type="checkbox" id="relay-2" class="relay-switch" data-relay="2">
+                                        <span class="slider round"></span>
+                                    </div>
+                                </div>
+                                <div class="control-group">
+                                    <label for="relay-3">Relay 3</label>
+                                    <div class="switch">
+                                        <input type="checkbox" id="relay-3" class="relay-switch" data-relay="3">
+                                        <span class="slider round"></span>
+                                    </div>
+                                </div>
+                                <div class="control-group">
+                                    <label for="relay-4">Relay 4</label>
+                                    <div class="switch">
+                                        <input type="checkbox" id="relay-4" class="relay-switch" data-relay="4">
+                                        <span class="slider round"></span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="coming-soon-message">
+                            <i class="fas fa-lightbulb" style="font-size: 48px; margin-bottom: 20px; color: var(--accent-color);"></i>
+                            <h2>Coming Soon</h2>
+                            <p>Light control panel for 4-channel relay will be available in a future update.</p>
+                        </div>
+                    </div>
+                    
+                    <!-- Latest Picture Tab -->
+                    <div class="admin-tab-content" id="latest-picture-tab">
+                        <div class="admin-panel-header">
+                            <h3>Latest Picture</h3>
+                            <button id="refresh-latest-picture" class="btn btn-secondary">
+                                <i class="fas fa-sync-alt"></i> Refresh
+                            </button>
+                        </div>
+                        <div class="latest-picture-container">
+                            <img id="latest-picture" src="#" alt="No image available">
+                            <p id="latest-picture-timestamp">No image available</p>
+                        </div>
+                        <div class="coming-soon-message">
+                            <i class="fas fa-image" style="font-size: 48px; margin-bottom: 20px; color: var(--accent-color);"></i>
+                            <h2>Coming Soon</h2>
+                            <p>Latest picture viewing will be available in a future update.</p>
+                        </div>
+                    </div>
+                    
+                    <!-- Calibration Tab -->
+                    <div class="admin-tab-content" id="calibration-tab">
+                        <div class="admin-panel-header">
+                            <h3>Sensor Calibration</h3>
+                        </div>
+                        <div class="calibration-panel">
+                            <div class="calibration-section">
+                                <h4>Sound Level Calibration</h4>
+                                <div class="calibration-form">
+                                    <div class="form-group">
+                                        <label for="sound-slope">Slope (a)</label>
+                                        <input type="number" id="sound-slope" class="form-control" placeholder="Enter slope value">
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="sound-intercept">Intercept (b)</label>
+                                        <input type="number" id="sound-intercept" class="form-control" placeholder="Enter intercept value">
+                                    </div>
+                                    <button id="save-sound-calibration" class="btn">Save Sound Calibration</button>
+                                </div>
+                            </div>
+                            
+                            <div class="calibration-section">
+                                <h4>Air Quality Calibration</h4>
+                                <div class="calibration-form">
+                                    <div class="form-group">
+                                        <label for="air-slope">Slope (a)</label>
+                                        <input type="number" id="air-slope" class="form-control" placeholder="Enter slope value">
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="air-intercept">Intercept (b)</label>
+                                        <input type="number" id="air-intercept" class="form-control" placeholder="Enter intercept value">
+                                    </div>
+                                    <button id="save-air-calibration" class="btn">Save Air Calibration</button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="coming-soon-message">
+                            <i class="fas fa-sliders-h" style="font-size: 48px; margin-bottom: 20px; color: var(--accent-color);"></i>
+                            <h2>Coming Soon</h2>
+                            <p>Sensor calibration will be available in a future update.</p>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>

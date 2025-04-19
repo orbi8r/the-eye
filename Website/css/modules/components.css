@@ -288,3 +288,202 @@
 .toast-close:hover {
     color: var(--text-color);
 }
+
+/* Admin Tab Navigation */
+.admin-tabs {
+    display: flex;
+    overflow-x: auto;
+    margin-bottom: 25px;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+    padding-bottom: 5px;
+}
+
+.admin-tab {
+    padding: 12px 20px;
+    margin-right: 5px;
+    cursor: pointer;
+    color: var(--text-muted);
+    transition: var(--transition);
+    position: relative;
+    border-bottom: 2px solid transparent;
+    white-space: nowrap;
+    display: flex;
+    align-items: center;
+}
+
+.admin-tab i {
+    margin-right: 8px;
+}
+
+.admin-tab:hover {
+    color: var(--accent-color);
+}
+
+.admin-tab.active {
+    color: var(--text-color);
+}
+
+.admin-tab::after {
+    content: '';
+    position: absolute;
+    bottom: -2px;
+    left: 0;
+    width: 0;
+    height: 2px;
+    background: linear-gradient(to right, var(--accent-color), var(--accent-color-2));
+    transition: var(--transition);
+}
+
+.admin-tab.active::after {
+    width: 100%;
+}
+
+/* Admin Tab Contents */
+.admin-tab-contents {
+    position: relative;
+}
+
+.admin-tab-content {
+    display: none;
+    animation: fadeIn 0.5s ease;
+}
+
+.admin-tab-content.active {
+    display: block;
+}
+
+/* Admin Panel Header */
+.admin-panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.admin-panel-header h3 {
+    margin: 0;
+    font-size: 18px;
+}
+
+/* Light control panel */
+.light-control-panel {
+    background-color: rgba(0,0,0,0.2);
+    border-radius: 15px;
+    padding: 25px;
+    margin-bottom: 20px;
+}
+
+.light-controls {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 50px; /* Increased gap between items */
+    padding: 20px 0; /* Add more vertical padding */
+}
+
+.control-group {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background-color: rgba(0,0,0,0.3); /* Add background for better visual separation */
+    padding: 15px 20px; /* Add padding inside each control */
+    border-radius: 10px; /* Rounded corners for each control */
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2); /* Subtle shadow for depth */
+}
+
+/* Toggle switch */
+.switch {
+    position: relative;
+    display: inline-block;
+    width: 60px;
+    height: 34px;
+}
+
+.switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(255,255,255,0.1);
+    transition: .4s;
+}
+
+.slider:before {
+    position: absolute;
+    content: "";
+    height: 26px;
+    width: 26px;
+    left: 4px;
+    bottom: 4px;
+    background-color: var(--text-muted);
+    transition: .4s;
+}
+
+input:checked + .slider {
+    background-color: var(--accent-color);
+}
+
+input:checked + .slider:before {
+    transform: translateX(26px);
+    background-color: white;
+}
+
+.slider.round {
+    border-radius: 34px;
+}
+
+.slider.round:before {
+    border-radius: 50%;
+}
+
+/* Latest picture container */
+.latest-picture-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.latest-picture-container img {
+    max-width: 100%;
+    border-radius: 10px;
+    margin-bottom: 10px;
+}
+
+/* Calibration panel */
+.calibration-panel {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 25px;
+    margin-bottom: 25px;
+}
+
+.calibration-section {
+    background-color: rgba(0,0,0,0.2);
+    border-radius: 15px;
+    padding: 20px;
+}
+
+.calibration-section h4 {
+    margin-top: 0;
+    margin-bottom: 15px;
+    color: var(--text-color);
+    font-size: 16px;
+}
+
+.calibration-form {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.calibration-form .btn {
+    margin-top: 10px;
+}
