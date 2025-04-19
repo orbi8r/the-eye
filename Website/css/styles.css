@@ -15,6 +15,7 @@
 @import 'modules/room-view.css';
 @import 'modules/stats-panels.css';
 @import 'modules/auth.css';
+@import 'modules/calibration.css'; /* Added calibration styles */
 
 /* Import animations */
 @import 'modules/animations.css';

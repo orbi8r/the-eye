@@ -228,11 +228,17 @@ async function handleLogout() {
             logoutItem.parentNode.removeChild(logoutItem);
         }
         
+        // Make the login item visible again
+        const loginItem = document.querySelector('.sidebar-item[data-view="login"]');
+        if (loginItem) {
+            loginItem.style.display = ''; // Reset display property to default
+        }
+        
         // Switch back to login view
         const sidebarItems = document.querySelectorAll('.sidebar-item');
-        const loginItem = Array.from(sidebarItems).find(item => item.getAttribute('data-view') === 'login');
-        if (loginItem) {
-            loginItem.click();
+        const loginViewItem = Array.from(sidebarItems).find(item => item.getAttribute('data-view') === 'login');
+        if (loginViewItem) {
+            loginViewItem.click();
         }
         
         // Show logout message
@@ -250,6 +256,12 @@ function updateUIForAuthenticatedUser() {
     const sidebarItems = document.querySelectorAll('.sidebar-item');
     const adminTab = document.getElementById('admin-view');
     const loginTab = document.getElementById('login-view');
+    
+    // Hide the login tab in sidebar
+    const loginItem = document.querySelector('.sidebar-item[data-view="login"]');
+    if (loginItem) {
+        loginItem.style.display = 'none';
+    }
     
     // Create admin tab in sidebar if it doesn't exist
     let adminItem = Array.from(sidebarItems).find(item => item.getAttribute('data-view') === 'admin');
@@ -280,10 +292,10 @@ function updateUIForAuthenticatedUser() {
             });
         });
         
-        // Add logout button
+        // Add logout button at the top left (instead of at the bottom)
         const logoutItem = document.createElement('div');
         logoutItem.className = 'sidebar-item';
-        logoutItem.style.marginTop = 'auto';
+        // Remove margin-top: auto to keep it at the top
         logoutItem.innerHTML = `
             <div class="sidebar-icon">
                 <i class="fas fa-sign-out-alt"></i>
@@ -293,8 +305,11 @@ function updateUIForAuthenticatedUser() {
         
         logoutItem.addEventListener('click', handleLogout);
         
+        // Add adminItem to sidebar
         sidebar.appendChild(adminItem);
-        sidebar.appendChild(logoutItem);
+        
+        // Insert logoutItem after adminItem to keep it at the top
+        sidebar.insertBefore(logoutItem, adminItem.nextSibling);
     }
     
     // Activate admin view

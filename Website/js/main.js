@@ -249,6 +249,18 @@ function setupAdminChartRefresh() {
                 refreshPeopleCountBtn.disabled = true;
                 refreshPeopleCountBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Loading...';
                 
+                // Hide coming soon message
+                const comingSoonMsg = document.querySelector('#people-count-tab .coming-soon-message');
+                if (comingSoonMsg) {
+                    comingSoonMsg.style.display = 'none';
+                }
+                
+                // Show the chart container
+                const chartContainer = document.querySelector('#people-count-tab .chart-container');
+                if (chartContainer) {
+                    chartContainer.style.display = 'block';
+                }
+                
                 // Fetch last 100 data points
                 const peopleData = await fetchLatestPeopleData(100);
                 
@@ -266,25 +278,156 @@ function setupAdminChartRefresh() {
         });
     }
     
-    // Setup other refresh buttons (will be implemented later)
+    // Setup other refresh buttons
     const refreshSoundBtn = document.getElementById('refresh-sound-level');
     if (refreshSoundBtn) {
         refreshSoundBtn.addEventListener('click', () => {
-            showToast('Sound level monitoring coming soon', 'info', 'Coming Soon');
+            refreshSoundBtn.disabled = true;
+            refreshSoundBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Loading...';
+            
+            // Hide coming soon message
+            const comingSoonMsg = document.querySelector('#sound-level-tab .coming-soon-message');
+            if (comingSoonMsg) {
+                comingSoonMsg.style.display = 'none';
+            }
+            
+            // Simulate loading
+            setTimeout(() => {
+                showToast('Sound level monitoring coming soon', 'info', 'Coming Soon');
+                refreshSoundBtn.disabled = false;
+                refreshSoundBtn.innerHTML = '<i class="fas fa-sync-alt"></i> Refresh Data';
+            }, 1000);
         });
     }
     
     const refreshAirQualityBtn = document.getElementById('refresh-air-quality');
     if (refreshAirQualityBtn) {
         refreshAirQualityBtn.addEventListener('click', () => {
-            showToast('Air quality monitoring coming soon', 'info', 'Coming Soon');
+            refreshAirQualityBtn.disabled = true;
+            refreshAirQualityBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Loading...';
+            
+            // Hide coming soon message
+            const comingSoonMsg = document.querySelector('#air-quality-tab .coming-soon-message');
+            if (comingSoonMsg) {
+                comingSoonMsg.style.display = 'none';
+            }
+            
+            // Simulate loading
+            setTimeout(() => {
+                showToast('Air quality monitoring coming soon', 'info', 'Coming Soon');
+                refreshAirQualityBtn.disabled = false;
+                refreshAirQualityBtn.innerHTML = '<i class="fas fa-sync-alt"></i> Refresh Data';
+            }, 1000);
+        });
+    }
+    
+    // Add light control refresh button handler
+    const refreshLightControlBtn = document.getElementById('refresh-light-control');
+    if (refreshLightControlBtn) {
+        refreshLightControlBtn.addEventListener('click', () => {
+            refreshLightControlBtn.disabled = true;
+            refreshLightControlBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Loading...';
+            
+            // Hide coming soon message
+            const comingSoonMsg = document.querySelector('#light-control-tab .coming-soon-message');
+            if (comingSoonMsg) {
+                comingSoonMsg.style.display = 'none';
+            }
+            
+            // Show the light controls panel
+            const lightControlPanel = document.querySelector('.light-control-panel');
+            if (lightControlPanel) {
+                lightControlPanel.style.display = 'block';
+            }
+            
+            // Simulate loading
+            setTimeout(() => {
+                showToast('Light controls are ready', 'success', 'Light Controls');
+                refreshLightControlBtn.disabled = false;
+                refreshLightControlBtn.innerHTML = '<i class="fas fa-sync-alt"></i> Refresh';
+            }, 1000);
         });
     }
     
     const refreshPictureBtn = document.getElementById('refresh-latest-picture');
     if (refreshPictureBtn) {
-        refreshPictureBtn.addEventListener('click', () => {
-            showToast('Latest picture feature coming soon', 'info', 'Coming Soon');
+        refreshPictureBtn.addEventListener('click', async () => {
+            try {
+                refreshPictureBtn.disabled = true;
+                refreshPictureBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Loading...';
+                
+                // Get the latest image URL
+                const imageUrl = await fetchLatestImage();
+                
+                if (imageUrl) {
+                    // Get elements
+                    const latestPicture = document.getElementById('latest-picture');
+                    const timestamp = document.getElementById('latest-picture-timestamp');
+                    const comingSoonMsg = document.querySelector('#latest-picture-tab .coming-soon-message');
+                    
+                    // Update image
+                    latestPicture.src = imageUrl;
+                    latestPicture.alt = 'Latest camera image';
+                    
+                    // Update timestamp
+                    const now = new Date();
+                    timestamp.textContent = `Last updated: ${now.toLocaleString()}`;
+                    
+                    // Hide "coming soon" message
+                    if (comingSoonMsg) {
+                        comingSoonMsg.style.display = 'none';
+                    }
+
+                    // Make sure the image container is visible
+                    const pictureContainer = document.querySelector('.latest-picture-container');
+                    if (pictureContainer) {
+                        pictureContainer.style.display = 'block';
+                    }
+                }
+            } catch (err) {
+                console.error('Error refreshing latest picture:', err);
+                showToast('Failed to refresh latest picture', 'error', 'Error');
+            } finally {
+                refreshPictureBtn.disabled = false;
+                refreshPictureBtn.innerHTML = '<i class="fas fa-sync-alt"></i> Refresh';
+            }
+        });
+    }
+    
+    // Add calibration refresh button
+    const refreshCalibrationBtn = document.getElementById('refresh-calibration');
+    if (refreshCalibrationBtn) {
+        refreshCalibrationBtn.addEventListener('click', async () => {
+            refreshCalibrationBtn.disabled = true;
+            refreshCalibrationBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Loading...';
+            
+            // Hide coming soon message
+            const comingSoonMsg = document.querySelector('#calibration-tab .coming-soon-message');
+            if (comingSoonMsg) {
+                comingSoonMsg.style.display = 'none';
+            }
+            
+            // Show the calibration panel
+            const calibrationPanel = document.querySelector('.calibration-panel');
+            if (calibrationPanel) {
+                calibrationPanel.style.display = 'block';
+            }
+            
+            // Fetch calibration data from Supabase
+            try {
+                const success = await fetchCalibrationData();
+                if (success) {
+                    showToast('Calibration settings loaded successfully', 'success', 'Calibration');
+                } else {
+                    showToast('Using default calibration values', 'info', 'Calibration');
+                }
+            } catch (err) {
+                console.error('Error loading calibration data:', err);
+                showToast('Error loading calibration data', 'error', 'Calibration Error');
+            } finally {
+                refreshCalibrationBtn.disabled = false;
+                refreshCalibrationBtn.innerHTML = '<i class="fas fa-sync-alt"></i> Refresh';
+            }
         });
     }
 }
