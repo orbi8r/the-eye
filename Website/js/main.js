@@ -85,6 +85,22 @@ function setupUIInteractions() {
                 content.classList.remove('active');
                 if (content.id === `${viewId}-view`) {
                     content.classList.add('active');
+                    
+                    // Auto-refresh people count chart when admin view is shown
+                    if (viewId === 'admin') {
+                        console.log('Admin view activated, refreshing people count chart...');
+                        setTimeout(async () => {
+                            try {
+                                const peopleData = await fetchLatestPeopleData(100);
+                                if (peopleData) {
+                                    updatePeopleCountChart(peopleData);
+                                    showToast('People count chart refreshed', 'success', 'Chart Updated');
+                                }
+                            } catch (err) {
+                                console.error('Error auto-refreshing people count chart:', err);
+                            }
+                        }, 500);
+                    }
                 }
             });
         });

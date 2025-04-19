@@ -437,110 +437,124 @@ function updatePeopleChart(data) {
 
 // Create or update the people count chart in the admin panel
 function updatePeopleCountChart(data) {
-    const ctx = document.getElementById('people-count-chart');
-    if (!ctx) return;
-    
-    // Extract timestamps and people counts
-    const timestamps = data.map(item => new Date(item.timestamp));
-    const peopleCounts = data.map(item => item.uv_coords ? item.uv_coords.length : 0);
-    
-    // Destroy previous chart if it exists
-    if (peopleCountChart) {
-        peopleCountChart.destroy();
-    }
-    
-    // Create new chart
-    peopleCountChart = new Chart(ctx, {
-        type: 'line',
-        data: {
-            labels: timestamps,
-            datasets: [{
-                label: 'People Count',
-                data: peopleCounts,
-                borderColor: '#7e53f8',
-                backgroundColor: createGradient(ctx, '#7e53f8', 'transparent'),
-                borderWidth: 2,
-                fill: true,
-                tension: 0.3,
-                pointRadius: 3,
-                pointHoverRadius: 5,
-                pointBackgroundColor: '#ff53b4'
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: true,
-            aspectRatio: 2.5,
-            plugins: {
-                legend: {
-                    position: 'top',
-                    labels: {
-                        color: '#9ba1b0'
+    try {
+        const ctx = document.getElementById('people-count-chart');
+        if (!ctx) {
+            console.error('Cannot find people-count-chart canvas element');
+            return;
+        }
+        
+        // Check if we have valid data
+        if (!data || !Array.isArray(data) || data.length === 0) {
+            console.warn('No data provided for people count chart');
+            return;
+        }
+        
+        console.log(`Preparing to update people count chart with ${data.length} data points`);
+        
+        // Explicitly destroy the existing chart instance if it exists
+        if (peopleCountChart) {
+            console.log('Destroying existing people count chart');
+            peopleCountChart.destroy();
+            peopleCountChart = null;
+        }
+        
+        // Prepare the data for the chart
+        let labels = [];
+        let counts = [];
+        
+        // Extract data from each point, handling potential format differences
+        data.forEach(item => {
+            // Use created_at if available, otherwise use timestamp
+            const timestamp = new Date(item.created_at || item.timestamp);
+            labels.push(timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
+            
+            // Calculate people count from uv_coords
+            let peopleCount = 0;
+            if (item.uv_coords) {
+                if (Array.isArray(item.uv_coords)) {
+                    peopleCount = item.uv_coords.length;
+                } else if (typeof item.uv_coords === 'string') {
+                    try {
+                        const coords = JSON.parse(item.uv_coords);
+                        peopleCount = Array.isArray(coords) ? coords.length : 0;
+                    } catch (e) {
+                        console.error('Failed to parse uv_coords:', e);
+                        peopleCount = 0;
+                    }
+                }
+            }
+            counts.push(peopleCount);
+        });
+        
+        // Log data for debugging
+        console.log('Chart labels:', labels.slice(0, 5).join(', ') + '...');
+        console.log('Chart counts:', counts.slice(0, 5).join(', ') + '...');
+        
+        // Create a new chart with a simple configuration
+        peopleCountChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Number of People',
+                    data: counts,
+                    backgroundColor: 'rgba(126, 83, 248, 0.2)',
+                    borderColor: 'rgba(126, 83, 248, 1)',
+                    borderWidth: 2,
+                    tension: 0.3,
+                    fill: true
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                plugins: {
+                    legend: {
+                        display: true,
+                        position: 'top',
+                    },
+                    tooltip: {
+                        enabled: true,
+                        mode: 'index',
+                        intersect: false
                     }
                 },
-                tooltip: {
-                    mode: 'index',
-                    intersect: false,
-                    backgroundColor: '#0b0c14',
-                    titleColor: '#e6e9ef',
-                    bodyColor: '#9ba1b0',
-                    borderColor: '#7e53f8',
-                    borderWidth: 1,
-                    callbacks: {
-                        title: function(tooltipItems) {
-                            return new Date(tooltipItems[0].parsed.x).toLocaleString();
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: 'Number of People'
+                        }
+                    },
+                    x: {
+                        grid: {
+                            display: false
+                        },
+                        title: {
+                            display: true,
+                            text: 'Time'
                         }
                     }
-                }
-            },
-            scales: {
-                y: {
-                    beginAtZero: true,
-                    grid: {
-                        color: 'rgba(255, 255, 255, 0.05)'
-                    },
-                    ticks: {
-                        color: '#9ba1b0'
-                    },
-                    title: {
-                        display: true,
-                        text: 'Number of People',
-                        color: '#9ba1b0'
-                    }
                 },
-                x: {
-                    type: 'time',
-                    time: {
-                        unit: 'minute',
-                        tooltipFormat: 'MMM d, yyyy, HH:mm:ss'
-                    },
-                    grid: {
-                        display: false
-                    },
-                    ticks: {
-                        color: '#9ba1b0',
-                        maxTicksLimit: 10,
-                        autoSkip: true
-                    },
-                    title: {
-                        display: true,
-                        text: 'Time',
-                        color: '#9ba1b0'
+                elements: {
+                    point: {
+                        radius: 3
                     }
                 }
-            },
-            interaction: {
-                intersect: false,
-                mode: 'index'
-            },
-            animation: {
-                duration: 1000,
-                easing: 'easeOutQuart'
             }
+        });
+        
+        console.log('People count chart created successfully');
+    } catch (error) {
+        console.error('Error updating people count chart:', error);
+        // Clean up in case of error
+        if (peopleCountChart) {
+            peopleCountChart.destroy();
+            peopleCountChart = null;
         }
-    });
-    
-    console.log('People count chart updated with', data.length, 'data points');
+    }
 }
 
 // Process hourly distribution of people count
