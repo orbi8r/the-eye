@@ -10,6 +10,11 @@ const COLORS = [
     'rgba(83, 248, 170, 0.8)'   // Green
 ];
 
+// Track the visualization state
+let isAverageView = false;
+let historicalData = null;
+let isLoadingHistoricalData = false;
+
 // Initialize visualization components
 function initVisualizations() {
     // Initialize main heatmap with AI-like colorful glow effect
@@ -78,38 +83,304 @@ function initVisualizations() {
     // Add loading state initially
     showLoadingState();
     
+    // Set up the average view toggle
+    setupAverageViewToggle();
+    
     console.log("Visualizations initialized");
 }
 
+// Set up the average/live view toggle
+function setupAverageViewToggle() {
+    const toggle = document.getElementById('average-mode-toggle');
+    const label = document.getElementById('visualization-mode-label');
+    
+    if (!toggle || !label) return;
+    
+    toggle.addEventListener('change', async function() {
+        // Disable the toggle during transitions to prevent multiple rapid toggles
+        toggle.disabled = true;
+        
+        isAverageView = this.checked;
+        label.textContent = isAverageView ? 'Average View' : 'Live View';
+        
+        try {
+            if (isAverageView) {
+                // Show loading state with clearer message
+                showLoadingState('Loading historical data...');
+                
+                // Fetch historical data if we don't have it yet
+                if (!historicalData || historicalData.length === 0) {
+                    await loadHistoricalDataForAverageView();
+                } else {
+                    updateAverageHeatmap();
+                    hideLoadingState();
+                }
+            } else {
+                // Switch back to live view
+                showLoadingState('Switching to live view...');
+                
+                // Give the UI a moment to update
+                setTimeout(() => {
+                    // If we have current data, update the live view
+                    const latestData = supabaseClient.getCurrentData();
+                    if (latestData) {
+                        updateRoomVisualization(latestData);
+                    }
+                    hideLoadingState();
+                }, 300);
+            }
+        } catch (error) {
+            console.error('Error during view toggle:', error);
+            hideLoadingState();
+            showToast('Error switching view modes', 'error', 'View Toggle');
+            
+            // Reset toggle to previous state on error
+            toggle.checked = !toggle.checked;
+            isAverageView = toggle.checked;
+            label.textContent = isAverageView ? 'Average View' : 'Live View';
+        } finally {
+            // Re-enable the toggle
+            toggle.disabled = false;
+        }
+    });
+}
+
+// Load historical data for the average view
+async function loadHistoricalDataForAverageView() {
+    if (isLoadingHistoricalData) return;
+    
+    isLoadingHistoricalData = true;
+    
+    try {
+        showLoadingState('Fetching historical data...');
+        
+        // Get current date
+        const endDate = new Date();
+        // Get date 24 hours ago
+        const startDate = new Date(endDate);
+        startDate.setHours(startDate.getHours() - 24);
+        
+        // Format dates for API
+        const formattedStartDate = startDate.toISOString().split('T')[0];
+        const formattedEndDate = endDate.toISOString().split('T')[0] + 'T23:59:59';
+        
+        // Fetch historical data for the last 24 hours
+        historicalData = await fetchHistoricalData(formattedStartDate, formattedEndDate);
+        
+        if (historicalData && historicalData.length > 0) {
+            showLoadingState('Processing average positions...');
+            
+            // Small timeout to allow UI to update
+            setTimeout(() => {
+                updateAverageHeatmap();
+                hideLoadingState();
+                showToast('Historical data loaded successfully', 'success', 'Average View');
+            }, 300);
+        } else {
+            hideLoadingState();
+            showToast('No historical data available', 'error', 'Average View');
+            
+            // Switch back to live view if no historical data
+            const toggle = document.getElementById('average-mode-toggle');
+            const label = document.getElementById('visualization-mode-label');
+            if (toggle && label) {
+                toggle.checked = false;
+                isAverageView = false;
+                label.textContent = 'Live View';
+            }
+        }
+    } catch (error) {
+        console.error('Error loading historical data:', error);
+        hideLoadingState();
+        showToast('Error loading historical data', 'error', 'Average View');
+    } finally {
+        isLoadingHistoricalData = false;
+    }
+}
+
+// Update the heatmap with averaged historical data
+function updateAverageHeatmap() {
+    if (!historicalData || historicalData.length === 0 || !heatmapInstance) {
+        console.warn("No historical data to display for average heatmap");
+        return;
+    }
+    
+    // Clear people markers when showing average view
+    if (peopleMarkersContainer) {
+        peopleMarkersContainer.innerHTML = '';
+    }
+    
+    // Get container dimensions
+    const container = document.querySelector('.room-container');
+    if (!container) {
+        console.error("Cannot find .room-container element!");
+        return;
+    }
+    
+    const width = container.clientWidth;
+    const height = container.clientHeight;
+    
+    // Create a grid to aggregate position data
+    const gridSize = 20; // 20x20 grid for better resolution
+    const grid = Array(gridSize).fill().map(() => Array(gridSize).fill(0));
+    
+    // Count total data points for calculating total people
+    let totalPeopleCount = 0;
+    let dataPointsWithPeople = 0;
+    
+    // Process all historical data points
+    historicalData.forEach(data => {
+        if (!data.uv_coords) return;
+        
+        let uvCoords = data.uv_coords;
+        
+        // Parse UV coordinates if they're stored as a string
+        if (typeof uvCoords === 'string') {
+            try {
+                uvCoords = JSON.parse(uvCoords);
+                if (!Array.isArray(uvCoords)) {
+                    return;
+                }
+            } catch (e) {
+                console.error('Error parsing UV coordinates:', e);
+                return;
+            }
+        }
+        
+        if (uvCoords.length > 0) {
+            totalPeopleCount += uvCoords.length;
+            dataPointsWithPeople++;
+            
+            // Add each UV coordinate to the grid
+            uvCoords.forEach(coord => {
+                if (typeof coord.u === 'number' && typeof coord.v === 'number') {
+                    const gridX = Math.floor(coord.u * gridSize);
+                    const gridY = Math.floor(coord.v * gridSize);
+                    
+                    if (gridX >= 0 && gridX < gridSize && gridY >= 0 && gridY < gridSize) {
+                        grid[gridY][gridX]++;
+                    }
+                }
+            });
+        }
+    });
+    
+    // Convert grid to heatmap data points
+    const points = [];
+    for (let y = 0; y < gridSize; y++) {
+        for (let x = 0; x < gridSize; x++) {
+            if (grid[y][x] > 0) {
+                // Convert grid coordinates to pixel coordinates
+                const pixelX = Math.floor((x + 0.5) * (width / gridSize));
+                const pixelY = Math.floor((y + 0.5) * (height / gridSize));
+                
+                points.push({
+                    x: pixelX,
+                    y: pixelY,
+                    value: grid[y][x] // The count becomes the intensity value
+                });
+            }
+        }
+    }
+    
+    // Update the heatmap with the aggregated data
+    heatmapInstance.setData({
+        max: Math.max(10, Math.ceil(points.reduce((max, p) => Math.max(max, p.value), 0))),
+        data: points
+    });
+    
+    // Update the people count display with average
+    const avgPeopleCount = dataPointsWithPeople > 0 
+        ? Math.round(totalPeopleCount / dataPointsWithPeople) 
+        : 0;
+        
+    updatePeopleCount(avgPeopleCount);
+    
+    // Also update the mini-heatmap in room selector
+    updateMiniHeatmapWithAverageData(grid, gridSize);
+}
+
+// Update mini-heatmap with average data
+function updateMiniHeatmapWithAverageData(grid, gridSize) {
+    if (!miniHeatmapInstance) return;
+    
+    const miniContainer = document.querySelector('.mini-heatmap');
+    if (!miniContainer) return;
+    
+    const width = miniContainer.clientWidth;
+    const height = miniContainer.clientHeight;
+    
+    // Convert grid to mini-heatmap points
+    const miniPoints = [];
+    
+    for (let y = 0; y < gridSize; y++) {
+        for (let x = 0; x < gridSize; x++) {
+            if (grid[y][x] > 0) {
+                const pixelX = Math.floor((x + 0.5) * (width / gridSize));
+                const pixelY = Math.floor((y + 0.5) * (height / gridSize));
+                
+                miniPoints.push({
+                    x: pixelX,
+                    y: pixelY,
+                    value: grid[y][x]
+                });
+            }
+        }
+    }
+    
+    // Update mini heatmap with the data
+    miniHeatmapInstance.setData({
+        max: Math.max(5, Math.ceil(miniPoints.reduce((max, p) => Math.max(max, p.value), 0))),
+        data: miniPoints
+    });
+}
+
 // Show loading state for visualizations
-function showLoadingState() {
+function showLoadingState(message = 'Connecting to Supabase...') {
+    // First, ensure any existing loading overlays are removed to avoid stacking
+    hideLoadingState();
+    
     const roomView = document.querySelector('.room-view');
     if (!roomView) return;
     
-    // Check if loading overlay already exists
-    if (!document.querySelector('.loading-overlay')) {
-        const loadingOverlay = document.createElement('div');
-        loadingOverlay.className = 'loading-overlay';
-        loadingOverlay.innerHTML = `
-            <div class="loading-spinner">
-                <div class="spinner"></div>
-            </div>
-            <div class="loading-text">Connecting to Supabase...</div>
-        `;
-        roomView.appendChild(loadingOverlay);
-    }
+    // Create a new loading overlay with the provided message
+    const loadingOverlay = document.createElement('div');
+    loadingOverlay.className = 'loading-overlay';
+    loadingOverlay.id = 'loading-overlay-' + Date.now(); // Add unique ID to track overlays
+    loadingOverlay.innerHTML = `
+        <div class="loading-spinner">
+            <div class="spinner"></div>
+        </div>
+        <div class="loading-text">${message}</div>
+    `;
+    roomView.appendChild(loadingOverlay);
+    
+    // Set a safety timeout to prevent stuck loading state (10 seconds)
+    loadingOverlay.safetyTimeout = setTimeout(() => {
+        console.warn('Safety timeout triggered for loading overlay');
+        if (document.contains(loadingOverlay)) {
+            hideLoadingState();
+        }
+    }, 10000);
 }
 
 // Hide loading state
 function hideLoadingState() {
-    const loadingOverlay = document.querySelector('.loading-overlay');
-    if (loadingOverlay) {
-        loadingOverlay.classList.add('fade-out');
-        setTimeout(() => {
-            if (loadingOverlay.parentNode) {
-                loadingOverlay.parentNode.removeChild(loadingOverlay);
+    const loadingOverlays = document.querySelectorAll('.loading-overlay');
+    if (loadingOverlays.length > 0) {
+        loadingOverlays.forEach(overlay => {
+            // Clear any safety timeouts
+            if (overlay.safetyTimeout) {
+                clearTimeout(overlay.safetyTimeout);
             }
-        }, 500);
+            
+            overlay.classList.add('fade-out');
+            setTimeout(() => {
+                if (overlay.parentNode) {
+                    overlay.parentNode.removeChild(overlay);
+                }
+            }, 500);
+        });
     }
 }
 
@@ -145,6 +416,9 @@ function createAmbientParticles() {
 
 // Update room visualization with new UV data
 function updateRoomVisualization(data) {
+    // If we're in average view mode, don't update with live data
+    if (isAverageView) return;
+
     // Check if data and uv_coords exist
     if (!data || typeof data.uv_coords === 'undefined') {
         console.warn("updateRoomVisualization called with missing data or uv_coords.");

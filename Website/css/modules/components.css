@@ -37,16 +37,20 @@
 }
 
 .btn-secondary {
-    background: transparent; /* Make background transparent */
-    color: var(--accent-color);
+    background: linear-gradient(90deg, var(--accent-color), var(--accent-color-2)); /* Add gradient background */
+    color: white; /* Change text color to white for better contrast */
     border: 1px solid transparent; /* Add transparent border for layout */
+    padding: 8px 16px; /* Standardize padding for consistent size */
+    border-radius: 20px; /* Make all buttons rounded like calibration button */
+    font-size: 14px; /* Standardize font size */
 }
 
 .btn-secondary:hover {
+    transform: translateY(-2px); /* Add subtle lift effect on hover */
     animation-name: edge-glow;
     animation-iteration-count: infinite;
     animation-timing-function: linear;
-    animation-duration: 25s; /* Explicitly set duration - very slow */
+    animation-duration: 2s; /* Faster animation duration for more noticeable effect */
 }
 
 .btn-icon {
@@ -202,18 +206,23 @@
 /* Toasts */
 .toast-container {
     position: fixed;
-    top: 20px;
-    right: 20px;
+    bottom: 20px;
+    left: 20px;
     z-index: 9999;
     display: flex;
     flex-direction: column;
-    align-items: flex-end;
+    align-items: flex-start;
     gap: 10px;
     pointer-events: none;
+    max-height: 50vh;
+    overflow-y: auto;
+    max-width: 350px;
+    padding-right: 10px;
 }
 
 .toast {
     min-width: 300px;
+    max-width: 320px;
     padding: 12px 15px;
     background-color: var(--dark-color);
     color: var(--text-color);
@@ -222,7 +231,7 @@
     display: flex;
     align-items: center;
     gap: 10px;
-    transform: translateX(120%);
+    transform: translateX(-120%);
     transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
     pointer-events: auto;
     position: relative;

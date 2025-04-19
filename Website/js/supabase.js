@@ -12,6 +12,9 @@ const POLLING_INTERVAL_MS = 2000; // Fetch data every 2 seconds
 let consecutiveErrors = 0;
 const MAX_CONSECUTIVE_ERRORS = 5;
 
+// Track current data for use by other components
+let currentData = null;
+
 // Calibration settings
 let calibrationData = {
     sound_a: 1,
@@ -35,6 +38,37 @@ document.addEventListener('DOMContentLoaded', () => {
     // Initialize connections by fetching initial data
     fetchInitialData();
 });
+
+/**
+ * Fetch the latest image from Supabase storage
+ * @returns {Promise<string|null>} URL of the latest image or null if no image is found
+ */
+async function fetchLatestImage() {
+    try {
+        console.log("Fetching latest image from Supabase storage...");
+        
+        // Instead of listing all images, directly get image_99.jpg which should be the latest
+        // based on the camera upload pattern in camera.ino
+        const { data: publicURL } = supabaseClient
+            .storage
+            .from('images')
+            .getPublicUrl('image_99.jpg');
+        
+        if (publicURL && publicURL.publicUrl) {
+            console.log('Latest image URL:', publicURL.publicUrl);
+            showToast('Latest image loaded successfully', 'success', 'Image Loaded');
+            return publicURL.publicUrl;
+        } else {
+            console.warn('Could not get public URL for image');
+            showToast('Failed to get image URL', 'error', 'Image Error');
+            return null;
+        }
+    } catch (err) {
+        console.error('Error in fetchLatestImage:', err);
+        showToast('Error retrieving latest image', 'error', 'Image Error');
+        return null;
+    }
+}
 
 // Fetch the most recent UV data point
 async function fetchLatestUVData() {
@@ -81,7 +115,11 @@ async function fetchLatestUVData() {
         }
 
         if (data) {
-            updateUI(data); // Update UI with the latest data
+            // Store current data
+            currentData = data;
+            
+            // Update UI with the latest data
+            updateUI(data);
         } else {
             // This case might happen if the table is empty
             console.warn('No UV data available');
@@ -99,6 +137,11 @@ async function fetchLatestUVData() {
         }
     }
 }
+
+// Getter for current data
+supabaseClient.getCurrentData = function() {
+    return currentData;
+};
 
 // Fetch latest people data points (limited to specified count)
 async function fetchLatestPeopleData(limit = 100) {
@@ -181,7 +224,7 @@ function stopPolling() {
     }
 }
 
-// Fetch historical data for charts and analysis (for admin view) - Remains largely the same
+// Fetch historical data for charts and analysis
 async function fetchHistoricalData(startDate, endDate) {
     try {
         showToast('Fetching historical data...', 'info', 'Data Request');
@@ -205,6 +248,20 @@ async function fetchHistoricalData(startDate, endDate) {
             return null;
         }
 
+        // Parse UV coordinates for each data point
+        if (data && data.length > 0) {
+            data.forEach(item => {
+                if (item.uv_coords && typeof item.uv_coords === 'string') {
+                    try {
+                        item.uv_coords = JSON.parse(item.uv_coords);
+                    } catch (e) {
+                        console.error('Error parsing historical UV coordinates:', e);
+                        item.uv_coords = [];
+                    }
+                }
+            });
+        }
+        
         if (data && data.length > 0) {
             showToast(`Retrieved ${data.length} historical records`, 'success', 'Data');
             return data;
@@ -220,46 +277,8 @@ async function fetchHistoricalData(startDate, endDate) {
     }
 }
 
-// Function to fetch the latest image from Supabase storage
-async function fetchLatestImage() {
-    try {
-        // Since images are named in sequence and rotate from 0 to 99
-        // We'll fetch image_99.jpg which should be the latest in the rotation
-        const latestImageIndex = 99;
-        const fileName = `image_${latestImageIndex}.jpg`;
-        
-        showToast('Fetching latest image...', 'info', 'Image Request');
-
-        // Get the public URL from Supabase storage
-        const { data, error } = await supabaseClient
-            .storage
-            .from('images')
-            .getPublicUrl(fileName);
-
-        if (error) {
-            console.error('Error fetching latest image:', error);
-            showToast('Failed to fetch image', 'error', 'Image Error');
-            return null;
-        }
-
-        if (data && data.publicUrl) {
-            // Add timestamp to prevent caching
-            const timestamp = new Date().getTime();
-            const imageUrl = `${data.publicUrl}?t=${timestamp}`;
-            
-            // Return the public URL with timestamp to prevent caching
-            showToast('Image fetched successfully', 'success', 'Image Loaded');
-            return imageUrl;
-        } else {
-            showToast('No image available', 'info', 'Image Status');
-            return null;
-        }
-    } catch (err) {
-        console.error('Error in fetchLatestImage:', err);
-        showToast('Error retrieving image', 'error', 'Image Error');
-        return null;
-    }
-}
+// Make fetchHistoricalData accessible globally
+window.fetchHistoricalData = fetchHistoricalData;
 
 /**
  * Fetch calibration data from Supabase
@@ -684,18 +703,19 @@ function showToast(message, type = 'info', title = 'Notification') {
         }, 400);
     });
 
-    // Auto-dismiss after 5 seconds (except for errors)
-    if (type !== 'error') {
-        setTimeout(() => {
-            if (toast.classList.contains('show')) {
-                toast.classList.remove('show');
+    // Auto-dismiss all toasts after a shorter time (including errors)
+    // Use different times based on notification type
+    const dismissTime = type === 'error' ? 4000 : 3000;
+    
+    setTimeout(() => {
+        if (toast.classList.contains('show')) {
+            toast.classList.remove('show');
 
-                setTimeout(() => {
-                    if (toast.parentNode) {
-                        toast.parentNode.removeChild(toast);
-                    }
-                }, 400);
-            }
-        }, 5000);
-    }
+            setTimeout(() => {
+                if (toast.parentNode) {
+                    toast.parentNode.removeChild(toast);
+                }
+            }, 400);
+        }
+    }, dismissTime);
 }

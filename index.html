@@ -58,6 +58,13 @@
                     <!-- Room View -->
                     <div class="room-view">
                         <h2 class="room-title">Room Visualization</h2>
+                        <div class="visualization-mode-toggle">
+                            <label class="mode-toggle">
+                                <input type="checkbox" id="average-mode-toggle">
+                                <span class="toggle-slider"></span>
+                                <span class="toggle-label" id="visualization-mode-label">Live View</span>
+                            </label>
+                        </div>
                         <div class="room-container">
                             <div id="heatmap-container"></div>
                             <div id="people-markers"></div>
@@ -401,7 +408,7 @@
                         </div>
                         <div class="latest-picture-container">
                             <img id="latest-picture" src="#" alt="No image available">
-                            <p id="latest-picture-timestamp">No image available</p>
+                            <p id="latest-picture-timestamp">Click refresh to load an image</p>
                         </div>
                         <div class="coming-soon-message">
                             <i class="fas fa-image" style="font-size: 48px; margin-bottom: 20px; color: var(--accent-color);"></i>
