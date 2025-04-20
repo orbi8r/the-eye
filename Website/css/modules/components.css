@@ -5,17 +5,19 @@
 
 /* Buttons */
 .btn {
-    padding: 12px 24px;
+    padding: 12px 24px; /* Default padding */
     background: linear-gradient(90deg, var(--accent-color), var(--accent-color-2));
     color: white;
-    border: 1px solid transparent; /* Add for smooth animation */
-    border-radius: 8px;
+    border: 1px solid transparent;
+    border-radius: 8px; /* Default radius */
     cursor: pointer;
     font-weight: 500;
     transition: var(--transition);
     display: inline-flex;
     align-items: center;
     justify-content: center;
+    text-align: center; /* Ensure text is centered */
+    line-height: 1.2; /* Adjust line-height if needed */
 }
 
 .btn:hover {
@@ -36,21 +38,38 @@
     width: 100%;
 }
 
+.btn-secondary,
+.btn-danger {
+    padding: 8px 16px;      /* Consistent padding */
+    font-size: 14px;         /* Consistent font size */
+    margin-left: 0.5rem;     /* Add spacing */
+    min-width: 120px;        /* Optional: Ensure minimum width */
+}
+
 .btn-secondary {
-    background: linear-gradient(90deg, var(--accent-color), var(--accent-color-2)); /* Add gradient background */
-    color: white; /* Change text color to white for better contrast */
-    border: 1px solid transparent; /* Add transparent border for layout */
-    padding: 8px 16px; /* Standardize padding for consistent size */
-    border-radius: 20px; /* Make all buttons rounded like calibration button */
-    font-size: 14px; /* Standardize font size */
+    background: linear-gradient(90deg, var(--accent-color), var(--accent-color-2));
+    color: white;
+    border: 1px solid transparent;
 }
 
 .btn-secondary:hover {
-    transform: translateY(-2px); /* Add subtle lift effect on hover */
+    transform: translateY(-2px);
     animation-name: edge-glow;
     animation-iteration-count: infinite;
     animation-timing-function: linear;
-    animation-duration: 2s; /* Faster animation duration for more noticeable effect */
+    animation-duration: 2s;
+}
+
+.btn-danger {
+    background: linear-gradient(90deg, #f85353, #e03c3c);
+    color: white;
+    border: 1px solid transparent;
+    transition: var(--transition);
+}
+
+.btn-danger:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(248, 83, 83, 0.3);
 }
 
 .btn-icon {
@@ -372,6 +391,10 @@
 .admin-panel-header h3 {
     margin: 0;
     font-size: 18px;
+}
+
+.admin-panel-header .btn {
+    border-radius: 20px !important;
 }
 
 /* Light control panel */

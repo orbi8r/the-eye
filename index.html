@@ -300,10 +300,15 @@
                     <!-- People Count Tab -->
                     <div class="admin-tab-content active" id="people-count-tab">
                         <div class="admin-panel-header">
-                            <h3>People Count (Last 100 Data Points)</h3>
-                            <button id="refresh-people-count" class="btn btn-secondary">
-                                <i class="fas fa-sync-alt"></i> Refresh Data
-                            </button>
+                            <h3>People Count (<span id="people-count-total-rows">...</span> total rows)</h3>
+                            <div>
+                                <button id="refresh-people-count" class="btn btn-secondary">
+                                    <i class="fas fa-sync-alt"></i> Refresh Data
+                                </button>
+                                <button id="clear-people-count" class="btn btn-danger">
+                                    <i class="fas fa-trash-alt"></i> Clear Oldest 100
+                                </button>
+                            </div>
                         </div>
                         <div class="chart-container">
                             <canvas id="people-count-chart"></canvas>
@@ -318,10 +323,15 @@
                     <!-- Sound Level Tab -->
                     <div class="admin-tab-content" id="sound-level-tab">
                         <div class="admin-panel-header">
-                            <h3>Sound Level (Last 100 Data Points)</h3>
-                            <button id="refresh-sound-level" class="btn btn-secondary">
-                                <i class="fas fa-sync-alt"></i> Refresh Data
-                            </button>
+                            <h3>Sound Level (<span id="sound-level-total-rows">...</span> total rows)</h3>
+                            <div>
+                                <button id="refresh-sound-level" class="btn btn-secondary">
+                                    <i class="fas fa-sync-alt"></i> Refresh Data
+                                </button>
+                                <button id="clear-sound-level" class="btn btn-danger">
+                                    <i class="fas fa-trash-alt"></i> Clear Oldest 100
+                                </button>
+                            </div>
                         </div>
                         <div class="chart-container">
                             <canvas id="sound-level-chart"></canvas>
@@ -336,10 +346,15 @@
                     <!-- Air Quality Tab -->
                     <div class="admin-tab-content" id="air-quality-tab">
                         <div class="admin-panel-header">
-                            <h3>Air Quality (Last 100 Data Points)</h3>
-                            <button id="refresh-air-quality" class="btn btn-secondary">
-                                <i class="fas fa-sync-alt"></i> Refresh Data
-                            </button>
+                            <h3>Air Quality (<span id="air-quality-total-rows">...</span> total rows)</h3>
+                            <div>
+                                <button id="refresh-air-quality" class="btn btn-secondary">
+                                    <i class="fas fa-sync-alt"></i> Refresh Data
+                                </button>
+                                <button id="clear-air-quality" class="btn btn-danger">
+                                    <i class="fas fa-trash-alt"></i> Clear Oldest 100
+                                </button>
+                            </div>
                         </div>
                         <div class="chart-container">
                             <canvas id="air-quality-chart"></canvas>

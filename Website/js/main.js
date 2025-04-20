@@ -281,16 +281,34 @@ function setupAdminTabs() {
     setupAdminChartRefresh();
 }
 
-// Setup refresh buttons for admin charts
+// Setup refresh buttons and clear buttons for admin charts
 function setupAdminChartRefresh() {
-    // People count refresh button
+    // Helper function to update row count display
+    const updateRowCountDisplay = async (tableName, elementId) => {
+        const countElement = document.getElementById(elementId);
+        if (countElement) {
+            try {
+                const count = await getTotalRowCount(tableName);
+                countElement.textContent = count;
+            } catch (err) {
+                console.error(`Error getting row count for ${tableName}:`, err);
+                countElement.textContent = 'Error';
+            }
+        }
+    };
+
+    // People count refresh and clear buttons
     const refreshPeopleCountBtn = document.getElementById('refresh-people-count');
+    const clearPeopleCountBtn = document.getElementById('clear-people-count');
     if (refreshPeopleCountBtn) {
         refreshPeopleCountBtn.addEventListener('click', async () => {
             try {
                 refreshPeopleCountBtn.disabled = true;
                 refreshPeopleCountBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Loading...';
                 
+                // Update row count
+                await updateRowCountDisplay('people_uv', 'people-count-total-rows');
+
                 // Hide coming soon message
                 const comingSoonMsg = document.querySelector('#people-count-tab .coming-soon-message');
                 if (comingSoonMsg) {
@@ -319,14 +337,37 @@ function setupAdminChartRefresh() {
             }
         });
     }
-    
-    // Setup other refresh buttons
+    if (clearPeopleCountBtn) {
+        clearPeopleCountBtn.addEventListener('click', async () => {
+            try {
+                clearPeopleCountBtn.disabled = true;
+                clearPeopleCountBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Clearing...';
+                const success = await clearOldestData('people_uv', 100);
+                if (success) {
+                    // Refresh chart and row count after clearing
+                    await refreshPeopleCountBtn.click(); 
+                }
+            } catch (err) {
+                console.error('Error clearing people count data:', err);
+                showToast('Failed to clear people count data', 'error', 'Error');
+            } finally {
+                clearPeopleCountBtn.disabled = false;
+                clearPeopleCountBtn.innerHTML = '<i class="fas fa-trash-alt"></i> Clear Oldest 100';
+            }
+        });
+    }
+
+    // Sound level refresh and clear buttons
     const refreshSoundBtn = document.getElementById('refresh-sound-level');
+    const clearSoundBtn = document.getElementById('clear-sound-level');
     if (refreshSoundBtn) {
         refreshSoundBtn.addEventListener('click', async () => {
             try {
                 refreshSoundBtn.disabled = true;
                 refreshSoundBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Loading...';
+
+                // Update row count
+                await updateRowCountDisplay('sound', 'sound-level-total-rows');
                 
                 // Hide coming soon message
                 const comingSoonMsg = document.querySelector('#sound-level-tab .coming-soon-message');
@@ -356,13 +397,37 @@ function setupAdminChartRefresh() {
             }
         });
     }
+    if (clearSoundBtn) {
+        clearSoundBtn.addEventListener('click', async () => {
+            try {
+                clearSoundBtn.disabled = true;
+                clearSoundBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Clearing...';
+                const success = await clearOldestData('sound', 100);
+                if (success) {
+                    // Refresh chart and row count after clearing
+                    await refreshSoundBtn.click();
+                }
+            } catch (err) {
+                console.error('Error clearing sound level data:', err);
+                showToast('Failed to clear sound level data', 'error', 'Error');
+            } finally {
+                clearSoundBtn.disabled = false;
+                clearSoundBtn.innerHTML = '<i class="fas fa-trash-alt"></i> Clear Oldest 100';
+            }
+        });
+    }
     
+    // Air quality refresh and clear buttons
     const refreshAirQualityBtn = document.getElementById('refresh-air-quality');
+    const clearAirQualityBtn = document.getElementById('clear-air-quality');
     if (refreshAirQualityBtn) {
         refreshAirQualityBtn.addEventListener('click', async () => {
             try {
                 refreshAirQualityBtn.disabled = true;
                 refreshAirQualityBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Loading...';
+
+                // Update row count
+                await updateRowCountDisplay('air_quality', 'air-quality-total-rows');
                 
                 // Hide coming soon message
                 const comingSoonMsg = document.querySelector('#air-quality-tab .coming-soon-message');
@@ -389,6 +454,25 @@ function setupAdminChartRefresh() {
             } finally {
                 refreshAirQualityBtn.disabled = false;
                 refreshAirQualityBtn.innerHTML = '<i class="fas fa-sync-alt"></i> Refresh Data';
+            }
+        });
+    }
+    if (clearAirQualityBtn) {
+        clearAirQualityBtn.addEventListener('click', async () => {
+            try {
+                clearAirQualityBtn.disabled = true;
+                clearAirQualityBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Clearing...';
+                const success = await clearOldestData('air_quality', 100);
+                if (success) {
+                    // Refresh chart and row count after clearing
+                    await refreshAirQualityBtn.click();
+                }
+            } catch (err) {
+                console.error('Error clearing air quality data:', err);
+                showToast('Failed to clear air quality data', 'error', 'Error');
+            } finally {
+                clearAirQualityBtn.disabled = false;
+                clearAirQualityBtn.innerHTML = '<i class="fas fa-trash-alt"></i> Clear Oldest 100';
             }
         });
     }

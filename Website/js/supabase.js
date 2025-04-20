@@ -1046,6 +1046,116 @@ async function updateDeviceState(device, state) {
 window.fetchRelayBuzzerData = fetchRelayBuzzerData;
 window.updateDeviceState = updateDeviceState;
 
+/**
+ * Get the total number of rows in a table.
+ * @param {string} tableName - The name of the table.
+ * @returns {Promise<number>} The total number of rows.
+ */
+async function getTotalRowCount(tableName) {
+    try {
+        const { count, error } = await supabaseClient
+            .from(tableName)
+            .select('*', { count: 'exact', head: true });
+
+        if (error) {
+            console.error(`Error getting row count for ${tableName}:`, error);
+            showToast(`Failed to get total rows for ${tableName}`, 'error', 'Database Error');
+            return 0;
+        }
+        return count || 0;
+    } catch (err) {
+        console.error(`Unexpected error getting row count for ${tableName}:`, err);
+        showToast('An unexpected error occurred while counting rows', 'error', 'Error');
+        return 0;
+    }
+}
+
+/**
+ * Clear the oldest data entries from a specified table.
+ * @param {string} tableName - The name of the table (e.g., 'people_uv', 'sound', 'air_quality').
+ * @param {number} limit - The maximum number of rows to delete.
+ * @returns {Promise<boolean>} Whether the deletion was successful.
+ */
+async function clearOldestData(tableName, limit = 100) {
+    const totalRows = await getTotalRowCount(tableName);
+    if (totalRows === 0) {
+        showToast(`Table '${tableName}' is already empty.`, 'info', 'Data Deletion');
+        return true; // Nothing to delete
+    }
+
+    const rowsToDelete = Math.min(limit, totalRows);
+
+    // Confirmation dialog
+    const confirmation = confirm(`Are you sure you want to delete the oldest ${rowsToDelete} rows from the '${tableName}' table? This action cannot be undone.`);
+    if (!confirmation) {
+        showToast('Data deletion cancelled.', 'info', 'Data Deletion');
+        return false;
+    }
+
+    try {
+        showToast(`Deleting oldest ${rowsToDelete} rows from ${tableName}...`, 'info', 'Data Deletion');
+
+        // Fetch the created_at timestamp of the Nth oldest row (where N is rowsToDelete)
+        const { data: oldestRows, error: fetchError } = await supabaseClient
+            .from(tableName)
+            .select('created_at') // Select the timestamp column
+            .order('created_at', { ascending: true })
+            .limit(rowsToDelete); // Fetch up to 'limit' oldest rows
+
+        if (fetchError) {
+            console.error(`Error fetching oldest rows from ${tableName}:`, fetchError);
+            showToast(`Failed to fetch rows to delete from ${tableName}. Error: ${fetchError.message}`, 'error', 'Database Error');
+            return false;
+        }
+
+        if (!oldestRows || oldestRows.length === 0) {
+            showToast(`No rows found to delete in ${tableName}.`, 'info', 'Data Deletion');
+            return true; // Nothing to delete
+        }
+
+        // Get the timestamp of the latest row among the oldest ones fetched
+        // This ensures we delete exactly the 'rowsToDelete' oldest entries, 
+        // even if multiple rows share the same timestamp.
+        const timestampToDelete = oldestRows[oldestRows.length - 1].created_at;
+        const numberOfDeletedRows = oldestRows.length; // Actual number of rows that will be deleted
+
+        // Delete rows with created_at less than or equal to the determined timestamp
+        const { error: deleteError } = await supabaseClient
+            .from(tableName)
+            .delete()
+            .lte('created_at', timestampToDelete);
+
+        if (deleteError) {
+            console.error(`Error deleting data from ${tableName}:`, deleteError);
+            showToast(`Failed to delete data from ${tableName}. Error: ${deleteError.message}`, 'error', 'Database Error');
+            return false;
+        }
+
+        showToast(`Successfully deleted ${numberOfDeletedRows} oldest rows from ${tableName}.`, 'success', 'Data Deleted');
+        // Update the total row count display after deletion
+        // This requires knowing which element ID corresponds to the table name
+        let elementId = '';
+        if (tableName === 'people_uv') elementId = 'people-count-total-rows';
+        else if (tableName === 'sound') elementId = 'sound-level-total-rows';
+        else if (tableName === 'air_quality') elementId = 'air-quality-total-rows';
+        
+        if (elementId) {
+            const countElement = document.getElementById(elementId);
+            if (countElement) {
+                const newCount = await getTotalRowCount(tableName);
+                countElement.textContent = newCount;
+            }
+        }
+        
+        return true;
+
+    } catch (err) {
+        console.error(`Unexpected error deleting data from ${tableName}:`, err);
+        showToast('An unexpected error occurred during data deletion', 'error', 'Error');
+        return false;
+    }
+}
+
 // Show toast notification - Remains the same
 function showToast(message, type = 'info', title = 'Notification') {
     const toastContainer = document.querySelector('.toast-container');
