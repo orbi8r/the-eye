@@ -413,7 +413,7 @@ function setupAdminChartRefresh() {
                     controlPanel.style.display = 'block';
                 }
                 
-                // Fetch relay and buzzer states from Supabase
+                // Fetch relay, buzzer, and servo states from Supabase
                 const controlData = await fetchRelayBuzzerData();
                 
                 if (controlData) {
@@ -439,6 +439,12 @@ function setupAdminChartRefresh() {
                     const buzzerSwitch = document.getElementById('buzzer');
                     if (buzzerSwitch) {
                         buzzerSwitch.checked = controlData.buzz || false;
+                    }
+                    
+                    // Update servo switch
+                    const servoSwitch = document.getElementById('servo-switch');
+                    if (servoSwitch) {
+                        servoSwitch.checked = controlData.servo_state || false;
                     }
                     
                     showToast('Control panel updated successfully', 'success', 'Controls');
@@ -652,6 +658,52 @@ function setupControlSwitches() {
             } finally {
                 // Re-enable the switch
                 newBuzzer.disabled = false;
+            }
+        });
+    }
+
+    // Set up servo switch
+    const servoSwitch = document.getElementById('servo-switch');
+    if (servoSwitch) {
+        console.log("Setting up event listener for servo");
+
+        // Remove any existing event listeners to prevent duplicates
+        const newServo = servoSwitch.cloneNode(true);
+        servoSwitch.parentNode.replaceChild(newServo, servoSwitch);
+
+        // Add click handler to the slider element
+        const sliderElement = newServo.nextElementSibling;
+        if (sliderElement && sliderElement.classList.contains('slider')) {
+            sliderElement.addEventListener('click', function(e) {
+                e.stopPropagation();
+                newServo.checked = !newServo.checked;
+                newServo.dispatchEvent(new Event('change'));
+            });
+        }
+
+        // Add new event listener to the cloned switch
+        newServo.addEventListener('change', async () => {
+            const isChecked = newServo.checked;
+            console.log(`Servo toggled to ${isChecked}`);
+            
+            newServo.disabled = true;
+            
+            try {
+                // Update the state in Supabase using 'servo' as the device name
+                const success = await updateDeviceState('servo', isChecked);
+                
+                if (!success) {
+                    newServo.checked = !isChecked;
+                    showToast('Failed to update servo', 'error', 'Control Error');
+                } else {
+                    showToast(`Servo ${isChecked ? 'activated' : 'deactivated'}`, 'success', 'Controls');
+                }
+            } catch (err) {
+                console.error('Error toggling servo:', err);
+                newServo.checked = !isChecked; // Revert on error
+                showToast('Error toggling servo', 'error', 'Control Error');
+            } finally {
+                newServo.disabled = false;
             }
         });
     }

@@ -1,16 +1,22 @@
 #include <WiFi.h>
 #include <HTTPClient.h>
 #include <Arduino_JSON.h>
+#include <Servo.h> // Include the Servo library
 
 // === Pin Definitions for ESP32 ===
 const int airQualityPin = 34;      // ADC1_6 — any ESP32 analog-capable pin
 const int buzzerPin = 13;
+const int servoPin = 22; // Define the servo pin
 
 const int relayPins[4] = {5, 18, 19, 21};  // Adjust as per your setup
 
 // Track relay states (LOW = ON for active LOW relays)
 bool relayState[4] = {false, false, false, false};
 bool buzzerState = false;
+bool isServoOpen = false; // Track servo state (false = closed/0 deg, true = open/90 deg)
+
+// Create Servo object
+Servo myServo;
 
 // === WiFi & Supabase Configuration ===
 const char* ssid = "PocoX6pro";       // Replace with your WiFi SSID
@@ -39,12 +45,17 @@ void setup() {
   // Set up relay pins
   for (int i = 0; i < 4; i++) {
     pinMode(relayPins[i], OUTPUT);
-    digitalWrite(relayPins[i], HIGH);  // Default OFF
+    digitalWrite(relayPins[i], HIGH);  // Default OFF for active-LOW relays
   }
   
   // Setup buzzer pin
   pinMode(buzzerPin, OUTPUT);
-  digitalWrite(buzzerPin, LOW); // Buzzer off by default
+  digitalWrite(buzzerPin, HIGH); // Buzzer OFF for active-LOW
+  
+  // Attach servo motor
+  myServo.attach(servoPin);
+  myServo.write(0); // Initialize servo to closed position (0 degrees)
+  Serial.println("Servo initialized to 0 degrees.");
   
   // Connect to WiFi
   connectToWifi();
@@ -130,7 +141,7 @@ void fetchRelayBuzzerData() {
   
   if (httpResponseCode > 0) {
     String response = http.getString();
-    Serial.println("Response: " + response);
+    Serial.println("Raw Response: " + response); // Print raw response
     
     // Parse JSON response
     JSONVar responseObj = JSON.parse(response);
@@ -162,11 +173,43 @@ void fetchRelayBuzzerData() {
       
       // Update buzzer state
       bool newBuzzerState = responseObj[0]["buzz"];
+      Serial.print("Received buzzer state from Supabase: ");
+      Serial.println(newBuzzerState ? "true" : "false");
+      Serial.print("Current local buzzer state: ");
+      Serial.println(buzzerState ? "true" : "false");
+
       if (buzzerState != newBuzzerState) {
         buzzerState = newBuzzerState;
-        digitalWrite(buzzerPin, buzzerState ? LOW : HIGH);
-        Serial.print("Buzzer set to ");
+        int pinValue = buzzerState ? LOW : HIGH; // Active-LOW logic
+        Serial.print("State changed. Writing to buzzerPin (");
+        Serial.print(buzzerPin);
+        Serial.print("): ");
+        Serial.println(pinValue == LOW ? "LOW (ON)" : "HIGH (OFF)");
+        digitalWrite(buzzerPin, pinValue);
+        Serial.print("Buzzer state updated to: ");
         Serial.println(buzzerState ? "ON" : "OFF");
+      } else {
+        Serial.println("Buzzer state unchanged.");
+      }
+
+      // Update servo state
+      bool newServoState = responseObj[0]["servo"]; // Read the 'servo' boolean value
+      Serial.print("Received servo state from Supabase: ");
+      Serial.println(newServoState ? "true (Open)" : "false (Closed)");
+      Serial.print("Current local servo state: ");
+      Serial.println(isServoOpen ? "true (Open)" : "false (Closed)");
+
+      if (isServoOpen != newServoState) { // Check if the state has actually changed
+        isServoOpen = newServoState; // Update the tracked state
+        int angle = isServoOpen ? 90 : 0; // Determine target angle
+        Serial.print("Servo state changed. Moving servo to ");
+        Serial.print(angle);
+        Serial.println(" degrees.");
+        myServo.write(angle); // Move the servo
+        Serial.print("Servo state updated to: ");
+        Serial.println(isServoOpen ? "Open" : "Closed");
+      } else {
+        Serial.println("Servo state unchanged.");
       }
     }
   } else {

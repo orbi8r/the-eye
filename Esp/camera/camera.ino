@@ -8,7 +8,7 @@ const char* password = "aaaaaaaa";
 
 // Supabase configuration
 const char* supabase_url = "https://lmkrpifbfbmasljrxthk.supabase.co/storage/v1/object/images/";
-const char* supabase_api_key = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxta3JwaWZiZmJtYXNsanJ4dGhrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQzODU3MTMsImV4cCI6MjA1OTk2MTcxM30.lTHwm4dUAmAQMbg7C2EmhP9DPvfVOCnYrU4XjXx9psQ";
+const char* supabase_anon_key = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxta3JwaWZiZmJtYXNsanJ4dGhrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQzODU3MTMsImV4cCI6MjA1OTk2MTcxM30.lTHwm4dUAmAQMbg7C2EmhP9DPvfVOCnYrU4XjXx9psQ";
 
 // Camera configuration (for AI Thinker ESP32-CAM)
 #define PWDN_GPIO_NUM    32
@@ -31,19 +31,58 @@ const char* supabase_api_key = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJ
 
 void startCameraServer();
 
-// Modified the code to upload an image every 200ms and cycle through 100 images in the Supabase bucket
+// Modified the code to upload an image every 200ms and cycle through 3 images in the Supabase bucket
 int imageIndex = 0;
-const int maxImages = 100;
+const int maxImages = 3;
+
+// Function to delete a specific image from Supabase storage
+void deleteImage(int idx) {
+  HTTPClient http;
+  String fileName = "image_" + String(idx) + ".jpg";
+  String url = String(supabase_url) + fileName;
+  http.begin(url.c_str());
+  // Add Content-Type header and empty JSON body
+  http.addHeader("Content-Type", "application/json"); 
+  http.addHeader("Authorization", String("Bearer ") + supabase_anon_key);
+  http.addHeader("apikey", supabase_anon_key);
+  
+  // Send DELETE request with an empty JSON body
+  int httpResponseCode = http.sendRequest("DELETE", "{}");
+
+  // Check if the deletion was successful (usually 200 or 204 No Content)
+  if (httpResponseCode == 200 || httpResponseCode == 204) {
+    Serial.printf("Successfully deleted %s\n", fileName.c_str());
+  } else {
+    Serial.printf("Failed to delete %s. HTTP Response Code: %d\n", fileName.c_str(), httpResponseCode);
+    // Optionally print response body if available for more details
+    String responseBody = http.getString(); 
+    Serial.printf("Response Body: %s\n", responseBody.c_str());
+  }
+  
+  http.end();
+}
+
+// Function to clear the bucket of all images at startup
+void clearBucket() {
+  for (int i = 0; i < maxImages; i++) {
+    deleteImage(i);
+  }
+}
 
 void uploadImageToSupabase(camera_fb_t *fb) {
   if (WiFi.status() == WL_CONNECTED) {
+    // Delete the next image to clear slot for new upload
+    deleteImage((imageIndex + 1) % maxImages);
     HTTPClient http;
     String fileName = "image_" + String(imageIndex) + ".jpg";
-    String url = String(supabase_url) + fileName;
+    // add upsert to overwrite existing objects and prevent 409
+    String url = String(supabase_url) + fileName + "?upsert=true";
 
     http.begin(url.c_str());
     http.addHeader("Content-Type", "image/jpeg");
-    http.addHeader("Authorization", String("Bearer ") + supabase_api_key);
+    // Use anon key for Authorization and apikey
+    http.addHeader("Authorization", String("Bearer ") + supabase_anon_key);
+    http.addHeader("apikey", supabase_anon_key);
 
     int httpResponseCode = http.POST(fb->buf, fb->len);
 
@@ -99,9 +138,9 @@ void setup() {
   config.pin_reset    = RESET_GPIO_NUM;
   config.xclk_freq_hz = 20000000;
   config.pixel_format = PIXFORMAT_JPEG;
-  config.frame_size   = FRAMESIZE_QVGA;
-  config.jpeg_quality = 10;
-  config.fb_count     = 2;
+  config.frame_size   = FRAMESIZE_SVGA;
+  config.jpeg_quality = 3; // Adjusted quality slightly (lower is better quality, higher is smaller size)
+  config.fb_count     = 1;
 
   esp_err_t err = esp_camera_init(&config);
   if (err != ESP_OK) {
@@ -109,6 +148,7 @@ void setup() {
     return;
   }
 
+  clearBucket();
   startCameraServer();
 }
 
@@ -122,7 +162,7 @@ void loop() {
   uploadImageToSupabase(fb);
   esp_camera_fb_return(fb);
 
-  delay(200); // Capture and upload every 200ms
+  delay(200);
 }
 
 #include <WebServer.h>

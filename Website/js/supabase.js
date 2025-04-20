@@ -48,34 +48,42 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 /**
- * Fetch the latest image from Supabase storage
- * @returns {Promise<string|null>} URL of the latest image or null if no image is found
+ * Fetch the latest image from Supabase storage by trying image_2, image_1, then image_0.
+ * @returns {Promise<string|null>} URL of the latest valid image or null if none are found.
  */
 async function fetchLatestImage() {
-    try {
-        console.log("Fetching latest image from Supabase storage...");
-        
-        // Instead of listing all images, directly get image_99.jpg which should be the latest
-        // based on the camera upload pattern in camera.ino
-        const { data: publicURL } = supabaseClient
+    console.log("Fetching latest image from Supabase storage (trying 2, 1, 0)...");
+    for (let i = 2; i >= 0; i--) {
+        const imageName = `image_${i}.jpg`;
+        const { data: publicURLData } = supabaseClient
             .storage
             .from('images')
-            .getPublicUrl('image_99.jpg');
-        
-        if (publicURL && publicURL.publicUrl) {
-            console.log('Latest image URL:', publicURL.publicUrl);
-            showToast('Latest image loaded successfully', 'success', 'Image Loaded');
-            return publicURL.publicUrl;
+            .getPublicUrl(imageName);
+
+        if (publicURLData && publicURLData.publicUrl) {
+            const imageUrl = publicURLData.publicUrl;
+            try {
+                // Verify the image URL is accessible and is an image
+                const response = await fetch(imageUrl, { method: 'HEAD' }); // Use HEAD request to check existence without downloading
+                if (response.ok && response.headers.get('content-type')?.startsWith('image/')) {
+                    console.log(`Found valid image: ${imageName} at ${imageUrl}`);
+                    showToast(`Latest image (${imageName}) loaded successfully`, 'success', 'Image Loaded');
+                    return imageUrl; // Return the URL of the first valid image found
+                } else {
+                    console.log(`${imageName} found but not a valid image or inaccessible (Status: ${response.status}, Type: ${response.headers.get('content-type')}).`);
+                }
+            } catch (fetchError) {
+                console.log(`Error verifying ${imageName} URL (${imageUrl}):`, fetchError);
+                // Continue to the next image if verification fails
+            }
         } else {
-            console.warn('Could not get public URL for image');
-            showToast('Failed to get image URL', 'error', 'Image Error');
-            return null;
+            console.log(`Could not get public URL for ${imageName}.`);
         }
-    } catch (err) {
-        console.error('Error in fetchLatestImage:', err);
-        showToast('Error retrieving latest image', 'error', 'Image Error');
-        return null;
     }
+
+    console.warn('Could not find any valid image (image_0, image_1, image_2).');
+    showToast('Failed to find a valid latest image', 'error', 'Image Error');
+    return null;
 }
 
 // Fetch the most recent UV data point
@@ -909,7 +917,7 @@ document.addEventListener('DOMContentLoaded', () => {
  */
 async function fetchRelayBuzzerData() {
     try {
-        console.log("Fetching relay and buzzer data...");
+        console.log("Fetching relay, buzzer, and servo data...");
         showToast('Fetching control states...', 'info', 'Controls');
         
         const { data, error } = await supabaseClient
@@ -918,19 +926,20 @@ async function fetchRelayBuzzerData() {
             .eq('id', 'main')
             .single();
         
+        // Default data structure including the new servo_state
+        const defaultData = {
+            id: 'main',
+            pin1: false,
+            pin2: false,
+            pin3: false,
+            pin4: false,
+            buzz: false,
+            servo: false // Corrected from servo_state
+        };
+            
         // If there's no data or the error is because no rows are returned
         if (error && error.message.includes('contains 0 rows') || !data) {
             console.log('No relay_buzzer record found, creating default record');
-            
-            // Create default record with correct column names
-            const defaultData = {
-                id: 'main',
-                pin1: false,
-                pin2: false,
-                pin3: false,
-                pin4: false,
-                buzz: false
-            };
             
             // Insert the default record
             const { data: insertData, error: insertError } = await supabaseClient
@@ -946,25 +955,20 @@ async function fetchRelayBuzzerData() {
             
             console.log('Created default relay_buzzer record:', insertData);
             showToast('Default control states created', 'success', 'Controls');
-            return insertData[0] || defaultData;
+            // Ensure the returned data includes all fields, even if DB schema was updated after creation
+            return { ...defaultData, ...(insertData ? insertData[0] : {}) }; 
         } else if (error) {
-            console.error('Error fetching relay/buzzer data:', error);
+            console.error('Error fetching relay/buzzer/servo data:', error);
             showToast('Failed to fetch control states', 'error', 'Control Error');
             
             // Return default values on error
-            return {
-                id: 'main',
-                pin1: false,
-                pin2: false,
-                pin3: false,
-                pin4: false,
-                buzz: false
-            };
+            return defaultData;
         }
         
-        console.log('Relay and buzzer data retrieved:', data);
+        console.log('Relay, buzzer, and servo data retrieved:', data);
         showToast('Control states loaded', 'success', 'Controls');
-        return data;
+        // Ensure the returned data includes all fields, merging with defaults
+        return { ...defaultData, ...data }; 
     } catch (err) {
         console.error('Error in fetchRelayBuzzerData:', err);
         showToast('Error retrieving control states', 'error', 'Control Error');
@@ -976,14 +980,15 @@ async function fetchRelayBuzzerData() {
             pin2: false,
             pin3: false,
             pin4: false,
-            buzz: false
+            buzz: false,
+            servo: false // Corrected from servo_state
         };
     }
 }
 
 /**
- * Update relay or buzzer state in Supabase
- * @param {string} device - The device to update ('relay1', 'relay2', 'relay3', 'relay4', or 'buzzer')
+ * Update relay, buzzer, or servo state in Supabase
+ * @param {string} device - The device to update ('relay1', 'relay2', 'relay3', 'relay4', 'buzzer', or 'servo')
  * @param {boolean} state - The new state (true for on, false for off)
  * @returns {Promise<boolean>} Whether the update was successful
  */
@@ -998,7 +1003,8 @@ async function updateDeviceState(device, state) {
             'relay2': 'pin2',
             'relay3': 'pin3',
             'relay4': 'pin4',
-            'buzzer': 'buzz'
+            'buzzer': 'buzz',
+            'servo': 'servo' // Corrected from servo_state
         };
         
         // Get the correct column name for the database
