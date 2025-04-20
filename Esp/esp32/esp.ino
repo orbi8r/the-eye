@@ -1,7 +1,7 @@
 #include <WiFi.h>
 #include <HTTPClient.h>
 #include <Arduino_JSON.h>
-#include <ESP32Servo.h>
+#include <Servo.h>
 
 // === Pin Definitions for ESP32 ===
 const int airQualityPin = 34;      // ADC1_6 — any ESP32 analog-capable pin
