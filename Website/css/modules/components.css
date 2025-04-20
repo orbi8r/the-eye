@@ -405,6 +405,7 @@
     display: inline-block;
     width: 60px;
     height: 34px;
+    cursor: pointer; /* Add cursor pointer to indicate it's clickable */
 }
 
 .switch input {
@@ -422,6 +423,8 @@
     bottom: 0;
     background-color: rgba(255,255,255,0.1);
     transition: .4s;
+    border-radius: 34px;
+    z-index: 1; /* Ensure the slider is above other elements but below the input's z-index */
 }
 
 .slider:before {

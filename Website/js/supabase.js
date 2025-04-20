@@ -8,12 +8,20 @@ const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 // Track connection state and polling
 let supabaseConnected = false;
 let pollingIntervalId = null;
-const POLLING_INTERVAL_MS = 2000; // Fetch data every 2 seconds
+let soundPollingIntervalId = null;
+let airPollingIntervalId = null;
+const POLLING_INTERVAL_MS = 2000; // Fetch UV data every 2 seconds
+const SOUND_POLLING_INTERVAL_MS = 5000; // Fetch sound data every 5 seconds
+const AIR_POLLING_INTERVAL_MS = 30000; // Fetch air quality data every 30 seconds
 let consecutiveErrors = 0;
 const MAX_CONSECUTIVE_ERRORS = 5;
 
 // Track current data for use by other components
 let currentData = null;
+let latestSoundValue = null; // Store latest calibrated sound value
+let latestAirQualityValue = null; // Store latest calibrated air quality value
+let lastSoundUpdate = null; // Timestamp of last sound update
+let lastAirQualityUpdate = null; // Timestamp of last air quality update
 
 // Calibration settings
 let calibrationData = {
@@ -138,6 +146,116 @@ async function fetchLatestUVData() {
     }
 }
 
+/**
+ * Fetch the most recent sound data point from Supabase
+ * @returns {Promise<number|null>} Calibrated sound level or null if no data is found
+ */
+async function fetchLatestSoundData() {
+    try {
+        const { data, error } = await supabaseClient
+            .from('sound')
+            .select('*')
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .single();
+
+        if (error) {
+            // Handle specific error for non-existent table or column
+            if (error.code === '42P01') { // Table doesn't exist
+                console.error('Error fetching sound data: Table "sound" does not exist or RLS prevents access.', error);
+                showToast('Required table "sound" not found. Check Supabase setup.', 'error', 'Database Error');
+                return null;
+            } else if (error.code === '42703') { // Column doesn't exist
+                console.error('Error fetching sound data: Column does not exist.', error);
+                showToast('Database column error. Check "sound" table structure.', 'error', 'Database Error');
+                return null;
+            } else {
+                console.error('Error fetching sound data:', error);
+                showToast(`Failed to fetch sound data: ${error.message}`, 'error', 'Connection Error');
+                return null;
+            }
+        }
+
+        if (data) {
+            console.log('Sound data retrieved:', data);
+            // Apply calibration to raw data
+            // Use data.data instead of data.int2 based on the actual structure
+            const rawValue = data.data;
+            if (rawValue === undefined || rawValue === null) {
+                console.error('Sound data missing "data" property:', data);
+                return null;
+            }
+            
+            const calibratedValue = applyCalibration('sound', rawValue);
+            latestSoundValue = calibratedValue; // Update latest sound value
+            lastSoundUpdate = new Date(); // Update timestamp
+            return calibratedValue;
+        } else {
+            console.warn('No sound data available');
+            return null;
+        }
+    } catch (err) {
+        console.error('Error in fetchLatestSoundData:', err);
+        showToast('Failed to fetch sound data', 'error', 'Connection Error');
+        return null;
+    }
+}
+
+/**
+ * Fetch the most recent air quality data point from Supabase
+ * @returns {Promise<number|null>} Calibrated air quality value or null if no data is found
+ */
+async function fetchLatestAirQualityData() {
+    try {
+        const { data, error } = await supabaseClient
+            .from('air_quality')
+            .select('*')
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .single();
+
+        if (error) {
+            // Handle specific error for non-existent table or column
+            if (error.code === '42P01') { // Table doesn't exist
+                console.error('Error fetching air quality data: Table "air_quality" does not exist or RLS prevents access.', error);
+                showToast('Required table "air_quality" not found. Check Supabase setup.', 'error', 'Database Error');
+                return null;
+            } else if (error.code === '42703') { // Column doesn't exist
+                console.error('Error fetching air quality data: Column does not exist.', error);
+                showToast('Database column error. Check "air_quality" table structure.', 'error', 'Database Error');
+                return null;
+            } else {
+                console.error('Error fetching air quality data:', error);
+                showToast(`Failed to fetch air quality data: ${error.message}`, 'error', 'Connection Error');
+                return null;
+            }
+        }
+
+        if (data) {
+            console.log('Air quality data retrieved:', data);
+            // Apply calibration to raw data
+            // Use data.data instead of data.int2 based on the actual structure
+            const rawValue = data.data;
+            if (rawValue === undefined || rawValue === null) {
+                console.error('Air quality data missing "data" property:', data);
+                return null;
+            }
+            
+            const calibratedValue = applyCalibration('air', rawValue);
+            latestAirQualityValue = calibratedValue; // Update latest air quality value
+            lastAirQualityUpdate = new Date(); // Update timestamp
+            return calibratedValue;
+        } else {
+            console.warn('No air quality data available');
+            return null;
+        }
+    } catch (err) {
+        console.error('Error in fetchLatestAirQualityData:', err);
+        showToast('Failed to fetch air quality data', 'error', 'Connection Error');
+        return null;
+    }
+}
+
 // Getter for current data
 supabaseClient.getCurrentData = function() {
     return currentData;
@@ -191,11 +309,109 @@ async function fetchLatestPeopleData(limit = 100) {
     }
 }
 
+// Fetch latest sound data points (limited to specified count)
+async function fetchLatestSoundData100(limit = 100) {
+    try {
+        console.log(`Fetching latest ${limit} sound data points...`);
+        
+        // Query Supabase for the latest data entries
+        const { data, error } = await supabaseClient
+            .from('sound')
+            .select('*')
+            .order('created_at', { ascending: false })
+            .limit(limit);
+        
+        if (error) {
+            console.error('Error fetching latest sound data:', error);
+            showToast('Failed to fetch latest sound data', 'error', 'Database Error');
+            return null;
+        }
+        
+        if (!data || data.length === 0) {
+            console.warn('No sound data returned from database');
+            showToast('No sound data available', 'info', 'Data Query');
+            return [];
+        }
+        
+        // Reverse the array to get chronological order (oldest first)
+        const sortedData = data.reverse();
+        
+        // Apply calibration to each data point
+        sortedData.forEach(item => {
+            if (item.data !== undefined && item.data !== null) {
+                item.calibrated_value = applyCalibration('sound', item.data);
+            } else {
+                item.calibrated_value = null;
+            }
+        });
+        
+        console.log(`Retrieved ${sortedData.length} sound data points`);
+        return sortedData;
+    } catch (err) {
+        console.error('Unexpected error fetching latest sound data:', err);
+        showToast('An unexpected error occurred', 'error', 'Error');
+        return null;
+    }
+}
+
+// Fetch latest air quality data points (limited to specified count)
+async function fetchLatestAirQualityData100(limit = 100) {
+    try {
+        console.log(`Fetching latest ${limit} air quality data points...`);
+        
+        // Query Supabase for the latest data entries
+        const { data, error } = await supabaseClient
+            .from('air_quality')
+            .select('*')
+            .order('created_at', { ascending: false })
+            .limit(limit);
+        
+        if (error) {
+            console.error('Error fetching latest air quality data:', error);
+            showToast('Failed to fetch latest air quality data', 'error', 'Database Error');
+            return null;
+        }
+        
+        if (!data || data.length === 0) {
+            console.warn('No air quality data returned from database');
+            showToast('No air quality data available', 'info', 'Data Query');
+            return [];
+        }
+        
+        // Reverse the array to get chronological order (oldest first)
+        const sortedData = data.reverse();
+        
+        // Apply calibration to each data point
+        sortedData.forEach(item => {
+            if (item.data !== undefined && item.data !== null) {
+                item.calibrated_value = applyCalibration('air', item.data);
+            } else {
+                item.calibrated_value = null;
+            }
+        });
+        
+        console.log(`Retrieved ${sortedData.length} air quality data points`);
+        return sortedData;
+    } catch (err) {
+        console.error('Unexpected error fetching latest air quality data:', err);
+        showToast('An unexpected error occurred', 'error', 'Error');
+        return null;
+    }
+}
+
 // Fetch initial data and start polling
 async function fetchInitialData() {
     showToast('Connecting to Supabase...', 'info', 'Connection');
     // Fetch calibration data first
     await fetchCalibrationData();
+    
+    // Fetch initial values for sound and air quality
+    await Promise.all([
+        fetchLatestSoundData(),
+        fetchLatestAirQualityData()
+    ]);
+    
+    // Fetch UV data
     await fetchLatestUVData(); // Fetch the first data point
 
     // Start polling only if the initial fetch didn't result in stopping
@@ -206,11 +422,32 @@ async function fetchInitialData() {
 
 // Start polling for new data
 function startPollingData() {
-    if (pollingIntervalId) {
-        clearInterval(pollingIntervalId); // Clear existing interval if any
-    }
-    console.log(`Starting data polling every ${POLLING_INTERVAL_MS / 1000} seconds...`);
-    pollingIntervalId = setInterval(fetchLatestUVData, POLLING_INTERVAL_MS);
+    // Clear any existing intervals first
+    stopPolling();
+    
+    console.log(`Starting data polling:
+    - UV data: every ${POLLING_INTERVAL_MS / 1000} seconds
+    - Sound data: every ${SOUND_POLLING_INTERVAL_MS / 1000} seconds
+    - Air quality: every ${AIR_POLLING_INTERVAL_MS / 1000} seconds`);
+    
+    // Start polling for UV data (people detection)
+    pollingIntervalId = setInterval(async () => {
+        await fetchLatestUVData();
+    }, POLLING_INTERVAL_MS);
+    
+    // Start polling for sound data every 5 seconds
+    soundPollingIntervalId = setInterval(async () => {
+        console.log('Polling sound data...');
+        await fetchLatestSoundData();
+    }, SOUND_POLLING_INTERVAL_MS);
+    
+    // Start polling for air quality data every 30 seconds
+    airPollingIntervalId = setInterval(async () => {
+        console.log('Polling air quality data...');
+        await fetchLatestAirQualityData();
+    }, AIR_POLLING_INTERVAL_MS);
+    
+    supabaseConnected = true;
     showToast('Live updates started', 'info', 'Connection');
 }
 
@@ -219,9 +456,20 @@ function stopPolling() {
     if (pollingIntervalId) {
         clearInterval(pollingIntervalId);
         pollingIntervalId = null;
-        supabaseConnected = false; // Mark as disconnected
-        console.log("Data polling stopped.");
     }
+    
+    if (soundPollingIntervalId) {
+        clearInterval(soundPollingIntervalId);
+        soundPollingIntervalId = null;
+    }
+    
+    if (airPollingIntervalId) {
+        clearInterval(airPollingIntervalId);
+        airPollingIntervalId = null;
+    }
+    
+    supabaseConnected = false;
+    console.log("All data polling stopped.");
 }
 
 // Fetch historical data for charts and analysis
@@ -654,6 +902,143 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 });
+
+/**
+ * Fetch relay and buzzer states from Supabase
+ * @returns {Promise<object|null>} Object containing relay and buzzer states or null on error
+ */
+async function fetchRelayBuzzerData() {
+    try {
+        console.log("Fetching relay and buzzer data...");
+        showToast('Fetching control states...', 'info', 'Controls');
+        
+        const { data, error } = await supabaseClient
+            .from('relay_buzzer')
+            .select('*')
+            .eq('id', 'main')
+            .single();
+        
+        // If there's no data or the error is because no rows are returned
+        if (error && error.message.includes('contains 0 rows') || !data) {
+            console.log('No relay_buzzer record found, creating default record');
+            
+            // Create default record with correct column names
+            const defaultData = {
+                id: 'main',
+                pin1: false,
+                pin2: false,
+                pin3: false,
+                pin4: false,
+                buzz: false
+            };
+            
+            // Insert the default record
+            const { data: insertData, error: insertError } = await supabaseClient
+                .from('relay_buzzer')
+                .insert(defaultData)
+                .select();
+            
+            if (insertError) {
+                console.error('Error creating default relay_buzzer record:', insertError);
+                showToast('Failed to create default control states', 'error', 'Control Error');
+                return defaultData; // Return default data anyway
+            }
+            
+            console.log('Created default relay_buzzer record:', insertData);
+            showToast('Default control states created', 'success', 'Controls');
+            return insertData[0] || defaultData;
+        } else if (error) {
+            console.error('Error fetching relay/buzzer data:', error);
+            showToast('Failed to fetch control states', 'error', 'Control Error');
+            
+            // Return default values on error
+            return {
+                id: 'main',
+                pin1: false,
+                pin2: false,
+                pin3: false,
+                pin4: false,
+                buzz: false
+            };
+        }
+        
+        console.log('Relay and buzzer data retrieved:', data);
+        showToast('Control states loaded', 'success', 'Controls');
+        return data;
+    } catch (err) {
+        console.error('Error in fetchRelayBuzzerData:', err);
+        showToast('Error retrieving control states', 'error', 'Control Error');
+        
+        // Return default values on error
+        return {
+            id: 'main',
+            pin1: false,
+            pin2: false,
+            pin3: false,
+            pin4: false,
+            buzz: false
+        };
+    }
+}
+
+/**
+ * Update relay or buzzer state in Supabase
+ * @param {string} device - The device to update ('relay1', 'relay2', 'relay3', 'relay4', or 'buzzer')
+ * @param {boolean} state - The new state (true for on, false for off)
+ * @returns {Promise<boolean>} Whether the update was successful
+ */
+async function updateDeviceState(device, state) {
+    try {
+        console.log(`Updating ${device} state to ${state}...`);
+        showToast(`Updating ${device}...`, 'info', 'Controls');
+        
+        // Map device names to database column names
+        const columnMap = {
+            'relay1': 'pin1',
+            'relay2': 'pin2',
+            'relay3': 'pin3',
+            'relay4': 'pin4',
+            'buzzer': 'buzz'
+        };
+        
+        // Get the correct column name for the database
+        const columnName = columnMap[device];
+        if (!columnName) {
+            console.error(`Invalid device name: ${device}`);
+            showToast(`Invalid device: ${device}`, 'error', 'Control Error');
+            return false;
+        }
+        
+        // Prepare update data using the correct column name
+        const updateData = { [columnName]: state };
+        
+        const { data, error } = await supabaseClient
+            .from('relay_buzzer')
+            .upsert({ 
+                id: 'main', 
+                ...updateData 
+            }, { 
+                onConflict: 'id' 
+            });
+        
+        if (error) {
+            console.error(`Error updating ${device} state:`, error);
+            showToast(`Failed to update ${device}`, 'error', 'Control Error');
+            return false;
+        }
+        
+        showToast(`${device.charAt(0).toUpperCase() + device.slice(1)} ${state ? 'activated' : 'deactivated'}`, 'success', 'Controls');
+        return true;
+    } catch (err) {
+        console.error(`Error in updateDeviceState for ${device}:`, err);
+        showToast(`Error updating ${device}`, 'error', 'Control Error');
+        return false;
+    }
+}
+
+// Make the functions available globally
+window.fetchRelayBuzzerData = fetchRelayBuzzerData;
+window.updateDeviceState = updateDeviceState;
 
 // Show toast notification - Remains the same
 function showToast(message, type = 'info', title = 'Notification') {

@@ -285,7 +285,7 @@
                         <i class="fas fa-wind"></i> Air Quality
                     </div>
                     <div class="admin-tab" data-admin-tab="light-control">
-                        <i class="fas fa-lightbulb"></i> Light Control
+                        <i class="fas fa-lightbulb"></i> Control Panel
                     </div>
                     <div class="admin-tab" data-admin-tab="latest-picture">
                         <i class="fas fa-image"></i> Latest Picture
@@ -354,7 +354,7 @@
                     <!-- Light Control Tab -->
                     <div class="admin-tab-content" id="light-control-tab">
                         <div class="admin-panel-header">
-                            <h3>Light Control Panel</h3>
+                            <h3>Control Panel</h3>
                             <button id="refresh-light-control" class="btn btn-secondary">
                                 <i class="fas fa-sync-alt"></i> Refresh
                             </button>
@@ -389,12 +389,19 @@
                                         <span class="slider round"></span>
                                     </div>
                                 </div>
+                                <div class="control-group">
+                                    <label for="buzzer">Buzzer</label>
+                                    <div class="switch">
+                                        <input type="checkbox" id="buzzer" class="buzzer-switch">
+                                        <span class="slider round"></span>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                         <div class="coming-soon-message">
                             <i class="fas fa-lightbulb" style="font-size: 48px; margin-bottom: 20px; color: var(--accent-color);"></i>
                             <h2>Click refresh to show</h2>
-                            <p>Click the refresh button to control lights.</p>
+                            <p>Click the refresh button to control lights and buzzer.</p>
                         </div>
                     </div>
                     

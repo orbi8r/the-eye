@@ -190,26 +190,65 @@ function simulateStats() {
     
     if (!noiseLevel || !noiseBar || !airQuality || !airQualityBar) return;
     
-    // Function to update stats with random values
-    function updateSimulatedStats() {
-        // Simulate noise (40-80 dB)
-        const noise = Math.floor(Math.random() * 40) + 40;
-        noiseLevel.textContent = `${noise} dB`;
-        const noisePercentage = (noise / 120) * 100;
-        noiseBar.style.width = `${noisePercentage}%`;
-        
-        // Simulate air quality (0-100 AQI)
-        const aqi = Math.floor(Math.random() * 50) + 30;
-        airQuality.textContent = `${aqi} AQI`;
-        const aqiPercentage = (aqi / 100) * 100;
-        airQualityBar.style.width = `${aqiPercentage}%`;
+    // Update with data from the cache - this will respect the polling intervals
+    async function updateStats() {
+        try {
+            // Update sound display - read from the cached value
+            if (latestSoundValue !== null) {
+                const soundRounded = Math.round(latestSoundValue);
+                noiseLevel.textContent = `${soundRounded} dB`;
+                const noisePercentage = Math.min((soundRounded / 120) * 100, 100);
+                noiseBar.style.width = `${noisePercentage}%`;
+                
+                // Update sound timestamp if available
+                const noiseLevelLabel = document.querySelector('.stat-panel:nth-child(2) .progress-labels span:nth-child(2)');
+                if (noiseLevelLabel) {
+                    if (noiseLevelLabel.textContent === 'Coming Soon') {
+                        noiseLevelLabel.textContent = `${soundRounded} dB`;
+                    }
+                    // Update the label with the time since last update
+                    if (lastSoundUpdate) {
+                        const timeSinceUpdate = Math.floor((new Date() - lastSoundUpdate) / 1000);
+                        if (timeSinceUpdate <= 60) {
+                            noiseLevelLabel.textContent = `${soundRounded} dB (${timeSinceUpdate}s ago)`;
+                        }
+                    }
+                }
+            }
+            
+            // Update air quality display - read from the cached value
+            if (latestAirQualityValue !== null) {
+                const airRounded = Math.round(latestAirQualityValue);
+                airQuality.textContent = `${airRounded} AQI`;
+                const airPercentage = Math.min((airRounded / 100) * 100, 100);
+                airQualityBar.style.width = `${airPercentage}%`;
+                
+                // Update air quality timestamp if available
+                const airQualityLabel = document.querySelector('.stat-panel:nth-child(3) .progress-labels span:nth-child(2)');
+                if (airQualityLabel) {
+                    if (airQualityLabel.textContent === 'Coming Soon') {
+                        airQualityLabel.textContent = `${airRounded} AQI`;
+                    }
+                    // Update the label with the time since last update
+                    if (lastAirQualityUpdate) {
+                        const timeSinceUpdate = Math.floor((new Date() - lastAirQualityUpdate) / 1000);
+                        if (timeSinceUpdate <= 60) {
+                            airQualityLabel.textContent = `${airRounded} AQI (${timeSinceUpdate}s ago)`;
+                        }
+                    }
+                }
+            }
+        } catch (err) {
+            console.error('Error updating sensor stats:', err);
+        }
     }
     
     // Initial update
-    updateSimulatedStats();
+    updateStats();
     
-    // Update every 5 seconds with slight variations
-    setInterval(updateSimulatedStats, 5000);
+    // Update display every second - this just updates the UI with the latest cached values
+    // The actual polling from Supabase happens at different intervals set in supabase.js
+    setInterval(updateStats, 1000);
 }
 
 // Setup admin tabs functionality
@@ -234,6 +273,9 @@ function setupAdminTabs() {
             });
         });
     });
+    
+    // Initialize control panel switch handlers
+    setupControlSwitches();
     
     // Set up refresh buttons for the admin charts
     setupAdminChartRefresh();
@@ -281,71 +323,133 @@ function setupAdminChartRefresh() {
     // Setup other refresh buttons
     const refreshSoundBtn = document.getElementById('refresh-sound-level');
     if (refreshSoundBtn) {
-        refreshSoundBtn.addEventListener('click', () => {
-            refreshSoundBtn.disabled = true;
-            refreshSoundBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Loading...';
-            
-            // Hide coming soon message
-            const comingSoonMsg = document.querySelector('#sound-level-tab .coming-soon-message');
-            if (comingSoonMsg) {
-                comingSoonMsg.style.display = 'none';
-            }
-            
-            // Simulate loading
-            setTimeout(() => {
-                showToast('Sound level monitoring coming soon', 'info', 'Coming Soon');
+        refreshSoundBtn.addEventListener('click', async () => {
+            try {
+                refreshSoundBtn.disabled = true;
+                refreshSoundBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Loading...';
+                
+                // Hide coming soon message
+                const comingSoonMsg = document.querySelector('#sound-level-tab .coming-soon-message');
+                if (comingSoonMsg) {
+                    comingSoonMsg.style.display = 'none';
+                }
+                
+                // Show the chart container
+                const chartContainer = document.querySelector('#sound-level-tab .chart-container');
+                if (chartContainer) {
+                    chartContainer.style.display = 'block';
+                }
+                
+                // Fetch last 100 sound data points
+                const soundData = await fetchLatestSoundData100(100);
+                
+                if (soundData) {
+                    updateSoundLevelChart(soundData);
+                    showToast('Sound level data updated successfully', 'success', 'Data Updated');
+                }
+            } catch (err) {
+                console.error('Error refreshing sound level data:', err);
+                showToast('Failed to refresh sound level data', 'error', 'Error');
+            } finally {
                 refreshSoundBtn.disabled = false;
                 refreshSoundBtn.innerHTML = '<i class="fas fa-sync-alt"></i> Refresh Data';
-            }, 1000);
+            }
         });
     }
     
     const refreshAirQualityBtn = document.getElementById('refresh-air-quality');
     if (refreshAirQualityBtn) {
-        refreshAirQualityBtn.addEventListener('click', () => {
-            refreshAirQualityBtn.disabled = true;
-            refreshAirQualityBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Loading...';
-            
-            // Hide coming soon message
-            const comingSoonMsg = document.querySelector('#air-quality-tab .coming-soon-message');
-            if (comingSoonMsg) {
-                comingSoonMsg.style.display = 'none';
-            }
-            
-            // Simulate loading
-            setTimeout(() => {
-                showToast('Air quality monitoring coming soon', 'info', 'Coming Soon');
+        refreshAirQualityBtn.addEventListener('click', async () => {
+            try {
+                refreshAirQualityBtn.disabled = true;
+                refreshAirQualityBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Loading...';
+                
+                // Hide coming soon message
+                const comingSoonMsg = document.querySelector('#air-quality-tab .coming-soon-message');
+                if (comingSoonMsg) {
+                    comingSoonMsg.style.display = 'none';
+                }
+                
+                // Show the chart container
+                const chartContainer = document.querySelector('#air-quality-tab .chart-container');
+                if (chartContainer) {
+                    chartContainer.style.display = 'block';
+                }
+                
+                // Fetch last 100 air quality data points
+                const airQualityData = await fetchLatestAirQualityData100(100);
+                
+                if (airQualityData) {
+                    updateAirQualityChart(airQualityData);
+                    showToast('Air quality data updated successfully', 'success', 'Data Updated');
+                }
+            } catch (err) {
+                console.error('Error refreshing air quality data:', err);
+                showToast('Failed to refresh air quality data', 'error', 'Error');
+            } finally {
                 refreshAirQualityBtn.disabled = false;
                 refreshAirQualityBtn.innerHTML = '<i class="fas fa-sync-alt"></i> Refresh Data';
-            }, 1000);
+            }
         });
     }
     
     // Add light control refresh button handler
     const refreshLightControlBtn = document.getElementById('refresh-light-control');
     if (refreshLightControlBtn) {
-        refreshLightControlBtn.addEventListener('click', () => {
-            refreshLightControlBtn.disabled = true;
-            refreshLightControlBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Loading...';
-            
-            // Hide coming soon message
-            const comingSoonMsg = document.querySelector('#light-control-tab .coming-soon-message');
-            if (comingSoonMsg) {
-                comingSoonMsg.style.display = 'none';
-            }
-            
-            // Show the light controls panel
-            const lightControlPanel = document.querySelector('.light-control-panel');
-            if (lightControlPanel) {
-                lightControlPanel.style.display = 'block';
-            }
-            
-            // Simulate loading
-            setTimeout(() => {
-                showToast('Light controls are ready', 'success', 'Light Controls');
+        refreshLightControlBtn.addEventListener('click', async () => {
+            try {
+                refreshLightControlBtn.disabled = true;
+                refreshLightControlBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Loading...';
+                
+                // Hide coming soon message
+                const comingSoonMsg = document.querySelector('#light-control-tab .coming-soon-message');
+                if (comingSoonMsg) {
+                    comingSoonMsg.style.display = 'none';
+                }
+                
+                // Show the control panel
+                const controlPanel = document.querySelector('.light-control-panel');
+                if (controlPanel) {
+                    controlPanel.style.display = 'block';
+                }
+                
+                // Fetch relay and buzzer states from Supabase
+                const controlData = await fetchRelayBuzzerData();
+                
+                if (controlData) {
+                    // Map between UI elements and database columns
+                    const columnMap = {
+                        '1': 'pin1',
+                        '2': 'pin2',
+                        '3': 'pin3',
+                        '4': 'pin4'
+                    };
+                    
+                    // Update relay switches based on retrieved states
+                    const relays = document.querySelectorAll('.relay-switch');
+                    relays.forEach(relay => {
+                        const relayNumber = relay.getAttribute('data-relay');
+                        const columnName = columnMap[relayNumber];
+                        if (columnName) {
+                            relay.checked = controlData[columnName] || false;
+                        }
+                    });
+                    
+                    // Update buzzer switch
+                    const buzzerSwitch = document.getElementById('buzzer');
+                    if (buzzerSwitch) {
+                        buzzerSwitch.checked = controlData.buzz || false;
+                    }
+                    
+                    showToast('Control panel updated successfully', 'success', 'Controls');
+                }
+            } catch (err) {
+                console.error('Error refreshing control panel:', err);
+                showToast('Failed to refresh control data', 'error', 'Error');
+            } finally {
                 refreshLightControlBtn.disabled = false;
                 refreshLightControlBtn.innerHTML = '<i class="fas fa-sync-alt"></i> Refresh';
-            }, 1000);
+            }
         });
     }
     
@@ -427,6 +531,127 @@ function setupAdminChartRefresh() {
             } finally {
                 refreshCalibrationBtn.disabled = false;
                 refreshCalibrationBtn.innerHTML = '<i class="fas fa-sync-alt"></i> Refresh';
+            }
+        });
+    }
+}
+
+// Initialize control panel switch handlers
+function setupControlSwitches() {
+    console.log("Setting up control switch handlers");
+    
+    // Map between UI elements and database columns
+    const columnMap = {
+        '1': 'pin1',
+        '2': 'pin2', 
+        '3': 'pin3',
+        '4': 'pin4'
+    };
+    
+    // Set up relay switches
+    const relaysSwitches = document.querySelectorAll('.relay-switch');
+    relaysSwitches.forEach(switchElement => {
+        const relayNum = switchElement.getAttribute('data-relay');
+        console.log(`Setting up event listener for relay ${relayNum}`);
+        
+        // Remove any existing event listeners to prevent duplicates
+        const newSwitch = switchElement.cloneNode(true);
+        switchElement.parentNode.replaceChild(newSwitch, switchElement);
+        
+        // Since we're using clones, also add a click handler to the slider element
+        const sliderElement = newSwitch.nextElementSibling;
+        if (sliderElement && sliderElement.classList.contains('slider')) {
+            sliderElement.addEventListener('click', function(e) {
+                // Stop propagation to avoid multiple trigger
+                e.stopPropagation();
+                // Toggle the checkbox
+                newSwitch.checked = !newSwitch.checked;
+                // Trigger the change event manually
+                newSwitch.dispatchEvent(new Event('change'));
+            });
+        }
+        
+        // Add the switch change event listener
+        newSwitch.addEventListener('change', async () => {
+            const isChecked = newSwitch.checked;
+            console.log(`Relay ${relayNum} toggled to ${isChecked}`);
+            
+            // Disable the switch during update
+            newSwitch.disabled = true;
+            
+            try {
+                // Map the relay number to the correct column name
+                const columnName = columnMap[relayNum];
+                
+                // Update the state in Supabase
+                const success = await updateDeviceState(`relay${relayNum}`, isChecked);
+                
+                // If update failed, revert the UI
+                if (!success) {
+                    newSwitch.checked = !isChecked;
+                    showToast(`Failed to update relay ${relayNum}`, 'error', 'Control Error');
+                } else {
+                    showToast(`Relay ${relayNum} ${isChecked ? 'activated' : 'deactivated'}`, 'success', 'Controls');
+                }
+            } catch (err) {
+                console.error(`Error toggling relay ${relayNum}:`, err);
+                newSwitch.checked = !isChecked; // Revert on error
+                showToast(`Error toggling relay ${relayNum}`, 'error', 'Control Error');
+            } finally {
+                // Re-enable the switch
+                newSwitch.disabled = false;
+            }
+        });
+    });
+    
+    // Set up buzzer switch
+    const buzzerSwitch = document.getElementById('buzzer');
+    if (buzzerSwitch) {
+        console.log("Setting up event listener for buzzer");
+        
+        // Remove any existing event listeners to prevent duplicates
+        const newBuzzer = buzzerSwitch.cloneNode(true);
+        buzzerSwitch.parentNode.replaceChild(newBuzzer, buzzerSwitch);
+        
+        // Since we're using clones, also add a click handler to the slider element
+        const sliderElement = newBuzzer.nextElementSibling;
+        if (sliderElement && sliderElement.classList.contains('slider')) {
+            sliderElement.addEventListener('click', function(e) {
+                // Stop propagation to avoid multiple trigger
+                e.stopPropagation();
+                // Toggle the checkbox
+                newBuzzer.checked = !newBuzzer.checked;
+                // Trigger the change event manually
+                newBuzzer.dispatchEvent(new Event('change'));
+            });
+        }
+        
+        // Add new event listener to the cloned switch
+        newBuzzer.addEventListener('change', async () => {
+            const isChecked = newBuzzer.checked;
+            console.log(`Buzzer toggled to ${isChecked}`);
+            
+            // Disable the switch during update
+            newBuzzer.disabled = true;
+            
+            try {
+                // Update the state in Supabase - use 'buzzer' as the device name which will map to 'buzz' in updateDeviceState
+                const success = await updateDeviceState('buzzer', isChecked);
+                
+                // If update failed, revert the UI
+                if (!success) {
+                    newBuzzer.checked = !isChecked;
+                    showToast('Failed to update buzzer', 'error', 'Control Error');
+                } else {
+                    showToast(`Buzzer ${isChecked ? 'activated' : 'deactivated'}`, 'success', 'Controls');
+                }
+            } catch (err) {
+                console.error('Error toggling buzzer:', err);
+                newBuzzer.checked = !isChecked; // Revert on error
+                showToast('Error toggling buzzer', 'error', 'Control Error');
+            } finally {
+                // Re-enable the switch
+                newBuzzer.disabled = false;
             }
         });
     }

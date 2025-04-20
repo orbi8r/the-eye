@@ -3,6 +3,8 @@ let peopleChart;
 let timeSeriesChart;
 let heatmapDistribution;
 let peopleCountChart;
+let soundLevelChart;  // New chart variable for sound level
+let airQualityChart;  // New chart variable for air quality
 
 // Initialize charts
 function initCharts() {
@@ -553,6 +555,224 @@ function updatePeopleCountChart(data) {
         if (peopleCountChart) {
             peopleCountChart.destroy();
             peopleCountChart = null;
+        }
+    }
+}
+
+// Create or update the sound level chart in the admin panel
+function updateSoundLevelChart(data) {
+    try {
+        const ctx = document.getElementById('sound-level-chart');
+        if (!ctx) {
+            console.error('Cannot find sound-level-chart canvas element');
+            return;
+        }
+        
+        // Check if we have valid data
+        if (!data || !Array.isArray(data) || data.length === 0) {
+            console.warn('No data provided for sound level chart');
+            return;
+        }
+        
+        console.log(`Preparing to update sound level chart with ${data.length} data points`);
+        
+        // Explicitly destroy the existing chart instance if it exists
+        if (soundLevelChart) {
+            console.log('Destroying existing sound level chart');
+            soundLevelChart.destroy();
+            soundLevelChart = null;
+        }
+        
+        // Prepare the data for the chart
+        let labels = [];
+        let soundLevels = [];
+        
+        // Extract data from each point
+        data.forEach(item => {
+            // Use created_at timestamp
+            const timestamp = new Date(item.created_at);
+            labels.push(timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
+            
+            // Use calibrated value if available, otherwise raw data
+            const value = item.calibrated_value !== null ? item.calibrated_value : item.data;
+            soundLevels.push(value);
+        });
+        
+        // Log data for debugging
+        console.log('Sound chart labels:', labels.slice(0, 5).join(', ') + '...');
+        console.log('Sound levels:', soundLevels.slice(0, 5).join(', ') + '...');
+        
+        // Create a new chart with a simple configuration
+        soundLevelChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Sound Level (dB)',
+                    data: soundLevels,
+                    backgroundColor: 'rgba(83, 216, 255, 0.2)',
+                    borderColor: 'rgba(83, 216, 255, 1)',
+                    borderWidth: 2,
+                    tension: 0.3,
+                    fill: true
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                plugins: {
+                    legend: {
+                        display: true,
+                        position: 'top',
+                    },
+                    tooltip: {
+                        enabled: true,
+                        mode: 'index',
+                        intersect: false
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: 'Sound Level (dB)'
+                        }
+                    },
+                    x: {
+                        grid: {
+                            display: false
+                        },
+                        title: {
+                            display: true,
+                            text: 'Time'
+                        }
+                    }
+                },
+                elements: {
+                    point: {
+                        radius: 3
+                    }
+                }
+            }
+        });
+        
+        console.log('Sound level chart created successfully');
+    } catch (error) {
+        console.error('Error updating sound level chart:', error);
+        // Clean up in case of error
+        if (soundLevelChart) {
+            soundLevelChart.destroy();
+            soundLevelChart = null;
+        }
+    }
+}
+
+// Create or update the air quality chart in the admin panel
+function updateAirQualityChart(data) {
+    try {
+        const ctx = document.getElementById('air-quality-chart');
+        if (!ctx) {
+            console.error('Cannot find air-quality-chart canvas element');
+            return;
+        }
+        
+        // Check if we have valid data
+        if (!data || !Array.isArray(data) || data.length === 0) {
+            console.warn('No data provided for air quality chart');
+            return;
+        }
+        
+        console.log(`Preparing to update air quality chart with ${data.length} data points`);
+        
+        // Explicitly destroy the existing chart instance if it exists
+        if (airQualityChart) {
+            console.log('Destroying existing air quality chart');
+            airQualityChart.destroy();
+            airQualityChart = null;
+        }
+        
+        // Prepare the data for the chart
+        let labels = [];
+        let airQualityLevels = [];
+        
+        // Extract data from each point
+        data.forEach(item => {
+            // Use created_at timestamp
+            const timestamp = new Date(item.created_at);
+            labels.push(timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
+            
+            // Use calibrated value if available, otherwise raw data
+            const value = item.calibrated_value !== null ? item.calibrated_value : item.data;
+            airQualityLevels.push(value);
+        });
+        
+        // Log data for debugging
+        console.log('Air quality chart labels:', labels.slice(0, 5).join(', ') + '...');
+        console.log('Air quality levels:', airQualityLevels.slice(0, 5).join(', ') + '...');
+        
+        // Create a new chart with a simple configuration
+        airQualityChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Air Quality (AQI)',
+                    data: airQualityLevels,
+                    backgroundColor: 'rgba(83, 248, 170, 0.2)',
+                    borderColor: 'rgba(83, 248, 170, 1)',
+                    borderWidth: 2,
+                    tension: 0.3,
+                    fill: true
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                plugins: {
+                    legend: {
+                        display: true,
+                        position: 'top',
+                    },
+                    tooltip: {
+                        enabled: true,
+                        mode: 'index',
+                        intersect: false
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: 'Air Quality (AQI)'
+                        }
+                    },
+                    x: {
+                        grid: {
+                            display: false
+                        },
+                        title: {
+                            display: true,
+                            text: 'Time'
+                        }
+                    }
+                },
+                elements: {
+                    point: {
+                        radius: 3
+                    }
+                }
+            }
+        });
+        
+        console.log('Air quality chart created successfully');
+    } catch (error) {
+        console.error('Error updating air quality chart:', error);
+        // Clean up in case of error
+        if (airQualityChart) {
+            airQualityChart.destroy();
+            airQualityChart = null;
         }
     }
 }
