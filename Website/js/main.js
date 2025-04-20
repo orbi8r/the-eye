@@ -220,7 +220,7 @@ function simulateStats() {
             if (latestAirQualityValue !== null) {
                 const airRounded = Math.round(latestAirQualityValue);
                 airQuality.textContent = `${airRounded} AQI`;
-                const airPercentage = Math.min((airRounded / 100) * 100, 100);
+                const airPercentage = Math.min((airRounded / 300) * 100, 100);
                 airQualityBar.style.width = `${airPercentage}%`;
                 
                 // Update air quality timestamp if available

@@ -160,15 +160,25 @@ async function loadHistoricalDataForAverageView() {
         const startDate = new Date(endDate);
         startDate.setHours(startDate.getHours() - 24);
         
-        // Format dates for API
-        const formattedStartDate = startDate.toISOString().split('T')[0];
-        const formattedEndDate = endDate.toISOString().split('T')[0] + 'T23:59:59';
+        // Format dates for API - use full ISO format for proper date comparison
+        const formattedStartDate = startDate.toISOString();
+        const formattedEndDate = endDate.toISOString();
+        
+        console.log(`Fetching historical data from ${formattedStartDate} to ${formattedEndDate}`);
         
         // Fetch historical data for the last 24 hours
         historicalData = await fetchHistoricalData(formattedStartDate, formattedEndDate);
         
+        // If no data found in date range, fetch the latest 100 records instead
+        if (!historicalData || historicalData.length === 0) {
+            console.log("No historical data found in date range, fetching latest 100 records instead");
+            showLoadingState('No data in date range, fetching latest records...');
+            historicalData = await fetchLatestPeopleData(100);
+        }
+        
         if (historicalData && historicalData.length > 0) {
             showLoadingState('Processing average positions...');
+            console.log(`Found ${historicalData.length} records to display in average view`);
             
             // Small timeout to allow UI to update
             setTimeout(() => {
