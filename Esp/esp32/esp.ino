@@ -24,9 +24,14 @@ const char* supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 unsigned long lastCheckTime = 0;
 const unsigned long checkInterval = 2000;
 
+// Air quality monitoring configuration
+unsigned long lastAirQualityTime = 0;
+const unsigned long airQualityInterval = 30000; // 30 seconds
+
 // Function declarations
 void connectToWifi();
 void fetchRelayBuzzerData();
+void sendAirQualityData(int airQualityValue);
 
 void setup() {
   Serial.begin(115200);
@@ -51,16 +56,25 @@ void setup() {
 }
 
 void loop() {
-  // Read and print sensor values periodically
-  int airValue = analogRead(airQualityPin);
-  Serial.print("Air Quality: ");
-  Serial.println(airValue);
+  unsigned long currentMillis = millis();
   
   // Check for relay/buzzer updates periodically
-  unsigned long currentMillis = millis();
   if (currentMillis - lastCheckTime >= checkInterval) {
     lastCheckTime = currentMillis;
     fetchRelayBuzzerData();
+  }
+  
+  // Monitor and send air quality data every 30 seconds
+  if (currentMillis - lastAirQualityTime >= airQualityInterval) {
+    lastAirQualityTime = currentMillis;
+    
+    // Read air quality data
+    int airValue = analogRead(airQualityPin);
+    Serial.print("Air Quality: ");
+    Serial.println(airValue);
+    
+    // Send to Supabase
+    sendAirQualityData(airValue);
   }
   
   delay(100); // Short delay for stability
@@ -157,6 +171,48 @@ void fetchRelayBuzzerData() {
     }
   } else {
     Serial.print("Error code: ");
+    Serial.println(httpResponseCode);
+  }
+  
+  http.end();
+}
+
+// Send air quality data to Supabase
+void sendAirQualityData(int airQualityValue) {
+  if (WiFi.status() != WL_CONNECTED) {
+    Serial.println("WiFi not connected. Reconnecting...");
+    connectToWifi();
+    return;
+  }
+  
+  HTTPClient http;
+  
+  // Create the URL for the air_quality table
+  String url = String(supabaseUrl) + "/rest/v1/air_quality";
+  
+  Serial.print("Sending air quality data to: ");
+  Serial.println(url);
+  
+  // Begin HTTP connection
+  http.begin(url);
+  
+  // Add required headers
+  http.addHeader("apikey", supabaseKey);
+  http.addHeader("Authorization", "Bearer " + String(supabaseKey));
+  http.addHeader("Content-Type", "application/json");
+  http.addHeader("Prefer", "return=minimal"); // Don't need the response body
+  
+  // Create JSON payload - use 'data' field as seen in supabase.js
+  String jsonPayload = "{\"data\":" + String(airQualityValue) + "}";
+  
+  // Send POST request
+  int httpResponseCode = http.POST(jsonPayload);
+  
+  if (httpResponseCode > 0) {
+    Serial.print("Air quality data sent successfully, response code: ");
+    Serial.println(httpResponseCode);
+  } else {
+    Serial.print("Error sending air quality data, error code: ");
     Serial.println(httpResponseCode);
   }
   
