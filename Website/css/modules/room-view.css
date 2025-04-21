@@ -223,6 +223,103 @@ input:checked + .toggle-slider:before {
     border-radius: 10px;
 }
 
+/* Quadrant Calibration Styling */
+.quadrant-calibration-section {
+    padding: 1.5rem;
+    background-color: var(--card-bg-color);
+    border-radius: 8px;
+    margin-top: 1.5rem;
+    box-shadow: var(--card-shadow);
+}
+
+.quadrant-calibration-section h4 {
+    font-size: 1.2rem;
+    margin-bottom: 1rem;
+    color: var(--accent-color);
+    font-weight: 600;
+}
+
+.calibration-description {
+    color: var(--text-secondary);
+    margin-bottom: 1rem;
+    font-size: 0.9rem;
+}
+
+.quadrant-calibration-container {
+    position: relative;
+    width: 100%;
+    margin: 1rem 0;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    overflow: hidden;
+    background-color: rgba(0, 0, 0, 0.2);
+}
+
+#quadrant-calibration-canvas {
+    display: block;
+    width: 100%;
+    height: auto;
+    cursor: crosshair;
+}
+
+.quadrant-input-controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    margin: 1rem 0;
+    padding: 1rem;
+    background-color: rgba(0, 0, 0, 0.2);
+    border-radius: 8px;
+}
+
+.quadrant-input-controls .input-group {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.quadrant-input-controls label {
+    font-weight: 600;
+    color: var(--accent-color);
+    width: 40px;
+}
+
+.quadrant-input-controls input[type="number"] {
+    width: 80px;
+    padding: 0.5rem;
+    border-radius: 4px;
+    border: 1px solid var(--border-color);
+    background-color: var(--input-bg);
+    color: var(--text-primary);
+}
+
+.quadrant-controls {
+    display: flex;
+    gap: 1rem;
+    margin: 1rem 0;
+}
+
+.quadrant-values {
+    background-color: rgba(0, 0, 0, 0.15);
+    padding: 1rem;
+    border-radius: 4px;
+    margin-top: 1rem;
+    font-size: 0.9rem;
+    color: var(--text-primary);
+}
+
+.quadrant-value {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-bottom: 0.5rem;
+}
+
+.quadrant-value span:first-child {
+    font-weight: 600;
+    color: var(--accent-color);
+}
+
 /* Room selector styles */
 .rooms-grid {
     display: grid;

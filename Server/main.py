@@ -6,6 +6,7 @@ import time
 import argparse
 import threading
 from sound import record_and_send_sound
+from relay import relay_loop
 
 
 def image_processing_loop():
@@ -38,12 +39,14 @@ def main():
         default=5,
         help="Sound recording interval in seconds (default: 5)",
     )
+    parser.add_argument("--relay", action="store_true", help="Run relay control loop")
 
     args = parser.parse_args()
 
-    # Default to image processing if no arguments given
-    if not args.image and not args.sound:
+    # Default to all services if no arguments given
+    if not args.image and not args.sound and not args.relay:
         args.image = True
+        args.relay = True
 
     # Create threads for each active function
     threads = []
@@ -59,6 +62,11 @@ def main():
         )
         threads.append(sound_thread)
         print(f"Sound monitoring enabled with {args.interval} second interval")
+
+    if args.relay:
+        relay_thread = threading.Thread(target=relay_loop, daemon=True)
+        threads.append(relay_thread)
+        print("Relay control enabled")
 
     # Start all threads
     for thread in threads:

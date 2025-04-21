@@ -418,6 +418,13 @@
                                         <span class="slider round"></span>
                                     </div>
                                 </div>
+                                <div class="control-group">
+                                    <label for="auto-quadrant-switch">Auto Quadrant</label>
+                                    <div class="switch">
+                                        <input type="checkbox" id="auto-quadrant-switch" class="auto-quadrant-switch">
+                                        <span class="slider round"></span>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                         <div class="coming-soon-message">
@@ -439,6 +446,53 @@
                             <img id="latest-picture" src="#" alt="No image available">
                             <p id="latest-picture-timestamp">Click refresh to load an image</p>
                         </div>
+                        
+                        <!-- Quadrant Calibration Section -->
+                        <div class="quadrant-calibration-section">
+                            <h4>Quadrant Calibration</h4>
+                            <p class="calibration-description">Set vertical and horizontal lines to divide the image into quadrants. You can directly type coordinates or drag lines with the calibration tool.</p>
+                            
+                            <div class="quadrant-calibration-container">
+                                <canvas id="quadrant-calibration-canvas"></canvas>
+                            </div>
+                            
+                            <div class="quadrant-input-controls">
+                                <div class="input-group">
+                                    <label for="x1-input">X1:</label>
+                                    <input type="number" id="x1-input" min="0" max="1" step="0.01" placeholder="0-1">
+                                </div>
+                                <div class="input-group">
+                                    <label for="x2-input">X2:</label>
+                                    <input type="number" id="x2-input" min="0" max="1" step="0.01" placeholder="0-1">
+                                </div>
+                                <div class="input-group">
+                                    <label for="y1-input">Y1:</label>
+                                    <input type="number" id="y1-input" min="0" max="1" step="0.01" placeholder="0-1">
+                                </div>
+                                <div class="input-group">
+                                    <label for="y2-input">Y2:</label>
+                                    <input type="number" id="y2-input" min="0" max="1" step="0.01" placeholder="0-1">
+                                </div>
+                            </div>
+                            
+                            <div class="quadrant-controls">
+                                <button id="start-quadrant-calibration" class="btn">Start Calibration</button>
+                                <button id="clear-quadrant-calibration" class="btn btn-secondary">Reset to Default</button>
+                                <button id="save-quadrant-calibration" class="btn">Save Calibration</button>
+                            </div>
+                            
+                            <div class="quadrant-values">
+                                <div class="quadrant-value">
+                                    <span>Vertical Lines:</span> 
+                                    <span id="line1-coordinates">x1=0.33, x2=0.66</span>
+                                </div>
+                                <div class="quadrant-value">
+                                    <span>Horizontal Lines:</span> 
+                                    <span id="line2-coordinates">y1=0.33, y2=0.66</span>
+                                </div>
+                            </div>
+                        </div>
+                        
                         <div class="coming-soon-message">
                             <i class="fas fa-image" style="font-size: 48px; margin-bottom: 20px; color: var(--accent-color);"></i>
                             <h2>Click refresh to show</h2>

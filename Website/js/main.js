@@ -7,6 +7,7 @@ document.addEventListener('DOMContentLoaded', () => {
     setupUIInteractions();
     setupRoomSelector();
     setupAdminTabs();
+    initQuadrantCalibration();
 });
 
 // Initialize the application
@@ -500,6 +501,9 @@ function setupAdminChartRefresh() {
                 // Fetch relay, buzzer, and servo states from Supabase
                 const controlData = await fetchRelayBuzzerData();
                 
+                // Fetch quadrant data to get the active state for auto quadrant switch
+                await fetchQuadrantData();
+                
                 if (controlData) {
                     // Map between UI elements and database columns
                     const columnMap = {
@@ -528,7 +532,13 @@ function setupAdminChartRefresh() {
                     // Update servo switch
                     const servoSwitch = document.getElementById('servo-switch');
                     if (servoSwitch) {
-                        servoSwitch.checked = controlData.servo_state || false;
+                        servoSwitch.checked = controlData.servo || false;
+                    }
+                    
+                    // Update auto quadrant switch
+                    const autoQuadrantSwitch = document.getElementById('auto-quadrant-switch');
+                    if (autoQuadrantSwitch) {
+                        autoQuadrantSwitch.checked = quadrantData.active || false;
                     }
                     
                     showToast('Control panel updated successfully', 'success', 'Controls');
@@ -791,6 +801,52 @@ function setupControlSwitches() {
             }
         });
     }
+    
+    // Set up auto quadrant switch
+    const autoQuadrantSwitch = document.getElementById('auto-quadrant-switch');
+    if (autoQuadrantSwitch) {
+        console.log("Setting up event listener for auto quadrant");
+
+        // Remove any existing event listeners to prevent duplicates
+        const newAutoQuadrant = autoQuadrantSwitch.cloneNode(true);
+        autoQuadrantSwitch.parentNode.replaceChild(newAutoQuadrant, autoQuadrantSwitch);
+
+        // Add click handler to the slider element
+        const sliderElement = newAutoQuadrant.nextElementSibling;
+        if (sliderElement && sliderElement.classList.contains('slider')) {
+            sliderElement.addEventListener('click', function(e) {
+                e.stopPropagation();
+                newAutoQuadrant.checked = !newAutoQuadrant.checked;
+                newAutoQuadrant.dispatchEvent(new Event('change'));
+            });
+        }
+
+        // Add new event listener to the cloned switch
+        newAutoQuadrant.addEventListener('change', async () => {
+            const isChecked = newAutoQuadrant.checked;
+            console.log(`Auto Quadrant toggled to ${isChecked}`);
+            
+            newAutoQuadrant.disabled = true;
+            
+            try {
+                // Update the state in Supabase using updateQuadrantActiveState function
+                const success = await updateQuadrantActiveState(isChecked);
+                
+                if (!success) {
+                    newAutoQuadrant.checked = !isChecked;
+                    showToast('Failed to update auto quadrant', 'error', 'Control Error');
+                } else {
+                    showToast(`Auto Quadrant ${isChecked ? 'activated' : 'deactivated'}`, 'success', 'Controls');
+                }
+            } catch (err) {
+                console.error('Error toggling auto quadrant:', err);
+                newAutoQuadrant.checked = !isChecked; // Revert on error
+                showToast('Error toggling auto quadrant', 'error', 'Control Error');
+            } finally {
+                newAutoQuadrant.disabled = false;
+            }
+        });
+    }
 }
 
 // Main function to update UI with new data
@@ -836,3 +892,305 @@ window.addEventListener('resize', () => {
         }
     }
 });
+
+/**
+ * Initialize quadrant calibration functionality in the Latest Picture tab
+ */
+function initQuadrantCalibration() {
+    // Canvas and controls
+    const canvas = document.getElementById('quadrant-calibration-canvas');
+    if (!canvas) return;
+    
+    // Get calibration buttons
+    const startButton = document.getElementById('start-quadrant-calibration');
+    const clearButton = document.getElementById('clear-quadrant-calibration');
+    const saveButton = document.getElementById('save-quadrant-calibration');
+    
+    // Get input fields for direct coordinate entry
+    const x1Input = document.getElementById('x1-input');
+    const x2Input = document.getElementById('x2-input');
+    const y1Input = document.getElementById('y1-input');
+    const y2Input = document.getElementById('y2-input');
+    
+    // State variables for calibration
+    let isCalibrating = false;
+    let activeLineType = ''; // 'x1', 'x2', 'y1', or 'y2'
+    let hoveredLine = ''; // Track which line the cursor is near
+    
+    // Initialize input fields with current values
+    function updateInputFields() {
+        if (x1Input) x1Input.value = quadrantData.x1.toFixed(2);
+        if (x2Input) x2Input.value = quadrantData.x2.toFixed(2);
+        if (y1Input) y1Input.value = quadrantData.y1.toFixed(2);
+        if (y2Input) y2Input.value = quadrantData.y2.toFixed(2);
+    }
+    
+    // Add event listeners for input fields
+    if (x1Input) {
+        x1Input.addEventListener('change', () => {
+            const value = parseFloat(x1Input.value);
+            if (!isNaN(value) && value >= 0 && value <= 1) {
+                quadrantData.x1 = value;
+                updateQuadrantUI();
+            } else {
+                x1Input.value = quadrantData.x1.toFixed(2);
+                showToast('X1 value must be between 0 and 1', 'error', 'Input Error');
+            }
+        });
+    }
+    
+    if (x2Input) {
+        x2Input.addEventListener('change', () => {
+            const value = parseFloat(x2Input.value);
+            if (!isNaN(value) && value >= 0 && value <= 1) {
+                quadrantData.x2 = value;
+                updateQuadrantUI();
+            } else {
+                x2Input.value = quadrantData.x2.toFixed(2);
+                showToast('X2 value must be between 0 and 1', 'error', 'Input Error');
+            }
+        });
+    }
+    
+    if (y1Input) {
+        y1Input.addEventListener('change', () => {
+            const value = parseFloat(y1Input.value);
+            if (!isNaN(value) && value >= 0 && value <= 1) {
+                quadrantData.y1 = value;
+                updateQuadrantUI();
+            } else {
+                y1Input.value = quadrantData.y1.toFixed(2);
+                showToast('Y1 value must be between 0 and 1', 'error', 'Input Error');
+            }
+        });
+    }
+    
+    if (y2Input) {
+        y2Input.addEventListener('change', () => {
+            const value = parseFloat(y2Input.value);
+            if (!isNaN(value) && value >= 0 && value <= 1) {
+                quadrantData.y2 = value;
+                updateQuadrantUI();
+            } else {
+                y2Input.value = quadrantData.y2.toFixed(2);
+                showToast('Y2 value must be between 0 and 1', 'error', 'Input Error');
+            }
+        });
+    }
+    
+    // Fetch quadrant data when loading the latest picture
+    const refreshButton = document.getElementById('refresh-latest-picture');
+    if (refreshButton) {
+        const originalClickHandler = refreshButton.onclick;
+        
+        refreshButton.onclick = async function(e) {
+            // Call original handler if it exists
+            if (originalClickHandler) {
+                originalClickHandler.call(this, e);
+            } else {
+                // Load latest image
+                const latestPicture = document.getElementById('latest-picture');
+                const imageUrl = await fetchLatestImage();
+                if (imageUrl) {
+                    latestPicture.src = imageUrl;
+                    latestPicture.onload = function() {
+                        // Image is loaded, now fetch quadrant data and draw lines
+                        fetchQuadrantData();
+                    };
+                    document.getElementById('latest-picture-timestamp').textContent = 'Retrieved at ' + new Date().toLocaleTimeString();
+                } else {
+                    latestPicture.src = "#";
+                    document.getElementById('latest-picture-timestamp').textContent = 'Failed to load image';
+                }
+            }
+            
+            // Make the coming soon message hidden
+            const comingSoonMessage = document.querySelector('#latest-picture-tab .coming-soon-message');
+            if (comingSoonMessage) {
+                comingSoonMessage.style.display = 'none';
+            }
+        };
+    }
+    
+    // Start calibration button
+    startButton.addEventListener('click', () => {
+        isCalibrating = true;
+        canvas.style.cursor = 'crosshair';
+        startButton.disabled = true;
+        clearButton.disabled = false;
+        
+        // Show instructions
+        showToast('Click and drag the vertical and horizontal lines to adjust quadrants', 'info', 'Quadrant Calibration');
+    });
+    
+    // Clear calibration button (reset to default)
+    clearButton.addEventListener('click', () => {
+        isCalibrating = false;
+        activeLineType = '';
+        startButton.disabled = false;
+        
+        // Reset to default values
+        quadrantData = {
+            x1: 0.33, // First vertical line (1/3 of image width)
+            x2: 0.66, // Second vertical line (2/3 of image width)
+            y1: 0.33, // First horizontal line (1/3 of image height)
+            y2: 0.66  // Second horizontal line (2/3 of image height)
+        };
+        
+        updateQuadrantUI();
+        updateInputFields();
+        showToast('Calibration reset to default values', 'info', 'Quadrant Calibration');
+    });
+    
+    // Save calibration button
+    saveButton.addEventListener('click', async () => {
+        isCalibrating = false;
+        activeLineType = '';
+        startButton.disabled = false;
+        await saveQuadrantData();
+    });
+
+    // Function to find the nearest line to a given point
+    function findNearestLine(x, y, canvasWidth, canvasHeight) {
+        // Calculate points for the tilted lines
+        const line1Start = { x: quadrantData.x1 * canvasWidth, y: 0 };
+        const line1End = { x: quadrantData.x2 * canvasWidth, y: canvasHeight };
+        
+        const line2Start = { x: 0, y: quadrantData.y1 * canvasHeight };
+        const line2End = { x: canvasWidth, y: quadrantData.y2 * canvasHeight };
+        
+        // Calculate distances from point to each line
+        const distToLine1 = distanceToLine(x, y, line1Start.x, line1Start.y, line1End.x, line1End.y);
+        const distToLine2 = distanceToLine(x, y, line2Start.x, line2Start.y, line2End.x, line2End.y);
+        
+        // Find the nearest line (within 10 pixels)
+        const lines = [
+            { type: 'x', distance: distToLine1 }, // Purple diagonal line
+            { type: 'y', distance: distToLine2 }  // Pink diagonal line
+        ];
+        
+        const nearest = lines.reduce((min, line) => 
+            line.distance < min.distance ? line : min, { distance: 10 });
+        
+        // Return the type of line if close enough, null otherwise
+        return nearest.distance <= 10 ? nearest.type : null;
+    }
+    
+    // Helper function to calculate distance from a point to a line segment
+    function distanceToLine(x, y, x1, y1, x2, y2) {
+        // Line length squared
+        const lengthSquared = Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2);
+        if (lengthSquared === 0) return Math.sqrt(Math.pow(x - x1, 2) + Math.pow(y - y1, 2));
+        
+        // Calculate projection and clamp to line segment
+        const t = Math.max(0, Math.min(1, 
+            ((x - x1) * (x2 - x1) + (y - y1) * (y2 - y1)) / lengthSquared
+        ));
+        
+        // Find the closest point on the line segment
+        const projX = x1 + t * (x2 - x1);
+        const projY = y1 + t * (y2 - y1);
+        
+        // Return the distance to this point
+        return Math.sqrt(Math.pow(x - projX, 2) + Math.pow(y - projY, 2));
+    }
+
+    // Mouse move event for line highlighting and dragging
+    canvas.addEventListener('mousemove', (e) => {
+        if (!isCalibrating) return;
+        
+        const rect = canvas.getBoundingClientRect();
+        const scaleX = canvas.width / rect.width;
+        const scaleY = canvas.height / rect.height;
+        
+        // Calculate position in canvas coordinates
+        const x = (e.clientX - rect.left) * scaleX;
+        const y = (e.clientY - rect.top) * scaleY;
+        
+        if (activeLineType) {
+            // Dragging mode - update the active line position
+            
+            if (activeLineType === 'x') {
+                // For the purple diagonal line (x1,0) to (x2,1)
+                // Determine if we're closer to the top or bottom endpoint
+                const distToTop = Math.sqrt(Math.pow(x - quadrantData.x1 * canvas.width, 2) + Math.pow(y - 0, 2));
+                const distToBottom = Math.sqrt(Math.pow(x - quadrantData.x2 * canvas.width, 2) + Math.pow(y - canvas.height, 2));
+                
+                if (distToTop < distToBottom) {
+                    // Dragging the top endpoint (x1,0)
+                    quadrantData.x1 = Math.max(0, Math.min(1, x / canvas.width));
+                } else {
+                    // Dragging the bottom endpoint (x2,1)
+                    quadrantData.x2 = Math.max(0, Math.min(1, x / canvas.width));
+                }
+            } else if (activeLineType === 'y') {
+                // For the pink diagonal line (0,y1) to (1,y2)
+                // Determine if we're closer to the left or right endpoint
+                const distToLeft = Math.sqrt(Math.pow(x - 0, 2) + Math.pow(y - quadrantData.y1 * canvas.height, 2));
+                const distToRight = Math.sqrt(Math.pow(x - canvas.width, 2) + Math.pow(y - quadrantData.y2 * canvas.height, 2));
+                
+                if (distToLeft < distToRight) {
+                    // Dragging the left endpoint (0,y1)
+                    quadrantData.y1 = Math.max(0, Math.min(1, y / canvas.height));
+                } else {
+                    // Dragging the right endpoint (1,y2)
+                    quadrantData.y2 = Math.max(0, Math.min(1, y / canvas.height));
+                }
+            }
+            
+            // Redraw lines with updated positions and update input fields
+            updateQuadrantUI();
+            updateInputFields();
+        } else {
+            // Highlight mode - determine if we're near a line
+            hoveredLine = findNearestLine(x, y, canvas.width, canvas.height);
+            
+            // Update cursor based on nearest line
+            if (hoveredLine) {
+                canvas.style.cursor = 'move';
+            } else {
+                canvas.style.cursor = 'crosshair';
+            }
+        }
+    });
+    
+    // Mouse down event to start dragging a line
+    canvas.addEventListener('mousedown', (e) => {
+        if (!isCalibrating) return;
+        
+        const rect = canvas.getBoundingClientRect();
+        const scaleX = canvas.width / rect.width;
+        const scaleY = canvas.height / rect.height;
+        
+        // Calculate position in canvas coordinates
+        const x = (e.clientX - rect.left) * scaleX;
+        const y = (e.clientY - rect.top) * scaleY;
+        
+        // Find which line we're clicking on
+        activeLineType = findNearestLine(x, y, canvas.width, canvas.height);
+        
+        // Prevent text selection while dragging
+        e.preventDefault();
+    });
+    
+    // Mouse up event for ending line drag
+    canvas.addEventListener('mouseup', () => {
+        if (!isCalibrating) return;
+        activeLineType = '';
+    });
+    
+    // Mouse leave event to stop dragging if cursor leaves canvas
+    canvas.addEventListener('mouseleave', () => {
+        if (isCalibrating) {
+            activeLineType = '';
+            canvas.style.cursor = 'default';
+        }
+    });
+}
+
+// Prevent multiple initialization
+if (typeof window.appInitialized === 'undefined') {
+    window.appInitialized = true;
+} else {
+    console.warn('main.js loaded multiple times');
+}

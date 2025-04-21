@@ -31,6 +31,18 @@ let calibrationData = {
     air_b: 0
 };
 
+/**
+ * Quadrant calibration data
+ * Stores line coordinates for dividing the image into quadrants
+ */
+let quadrantData = {
+    x1: 0.5, // First vertical line position (x-coordinate, 0-1 range)
+    x2: 0.5, // Second vertical line position (x-coordinate, 0-1 range)
+    y1: 0.5, // First horizontal line position (y-coordinate, 0-1 range)
+    y2: 0.5,  // Second horizontal line position (y-coordinate, 0-1 range)
+    active: false // Whether quadrant detection is active
+};
+
 // Track calibration chart instances
 let soundCalibrationChart = null;
 let airCalibrationChart = null;
@@ -581,6 +593,250 @@ async function fetchCalibrationData() {
         return false;
     }
 }
+
+/**
+ * Fetch quadrant calibration data from Supabase
+ * This retrieves line coordinates for dividing the image into quadrants
+ * @returns {Promise<boolean>} Whether the fetch was successful
+ */
+async function fetchQuadrantData() {
+    try {
+        console.log("Fetching quadrant calibration data...");
+        showToast('Fetching quadrant settings...', 'info', 'Calibration');
+        
+        const { data, error } = await supabaseClient
+            .from('quadrant')
+            .select('*')
+            .eq('id', 'main')
+            .single();
+        
+        if (error) {
+            // If error is due to no records, create default data
+            if (error.message.includes('contains 0 rows')) {
+                console.log("No quadrant data found, creating default record");
+                await saveQuadrantData();
+                return true;
+            }
+            
+            console.error('Error fetching quadrant data:', error);
+            showToast('Failed to fetch quadrant settings', 'error', 'Calibration Error');
+            return false;
+        }
+        
+        if (data) {
+            console.log('Quadrant data retrieved:', data);
+            // Update the quadrant data object
+            quadrantData = {
+                x1: parseFloat(data.x1) || 0.5,
+                x2: parseFloat(data.x2) || 0.5,
+                y1: parseFloat(data.y1) || 0.5,
+                y2: parseFloat(data.y2) || 0.5,
+                active: data.active || false // Include active state
+            };
+            
+            updateQuadrantUI();
+            showToast('Quadrant settings loaded', 'success', 'Calibration');
+            return true;
+        } else {
+            console.warn("No quadrant data found");
+            showToast('No quadrant settings found, using defaults', 'info', 'Calibration');
+            return false;
+        }
+    } catch (err) {
+        console.error('Error in fetchQuadrantData:', err);
+        showToast('Error retrieving quadrant settings', 'error', 'Calibration Error');
+        return false;
+    }
+}
+
+/**
+ * Save quadrant calibration data to Supabase
+ * @returns {Promise<boolean>} Whether the save was successful
+ */
+async function saveQuadrantData() {
+    try {
+        console.log("Saving quadrant calibration data:", quadrantData);
+        showToast('Saving quadrant settings...', 'info', 'Calibration');
+        
+        const { data, error } = await supabaseClient
+            .from('quadrant')
+            .upsert({
+                id: 'main',
+                x1: quadrantData.x1,
+                x2: quadrantData.x2,
+                y1: quadrantData.y1,
+                y2: quadrantData.y2,
+                active: quadrantData.active // Include active state
+            }, {
+                onConflict: 'id'
+            });
+            
+        if (error) {
+            console.error('Error saving quadrant data:', error);
+            showToast('Failed to save quadrant settings', 'error', 'Calibration Error');
+            return false;
+        }
+        
+        showToast('Quadrant settings saved successfully', 'success', 'Calibration');
+        return true;
+    } catch (err) {
+        console.error('Error in saveQuadrantData:', err);
+        showToast('Error saving quadrant settings', 'error', 'Calibration Error');
+        return false;
+    }
+}
+
+/**
+ * Update the quadrant calibration UI with current values
+ */
+function updateQuadrantUI() {
+    // Update the coordinate display
+    const line1Coords = document.getElementById('line1-coordinates');
+    const line2Coords = document.getElementById('line2-coordinates');
+    
+    if (line1Coords) line1Coords.textContent = `x1=${quadrantData.x1.toFixed(2)}, x2=${quadrantData.x2.toFixed(2)}`;
+    if (line2Coords) line2Coords.textContent = `y1=${quadrantData.y1.toFixed(2)}, y2=${quadrantData.y2.toFixed(2)}`;
+    
+    // If canvas exists, redraw the lines
+    drawQuadrantLines();
+}
+
+/**
+ * Draw quadrant lines on the calibration canvas
+ * Uses the current quadrantData values
+ */
+function drawQuadrantLines() {
+    const canvas = document.getElementById('quadrant-calibration-canvas');
+    if (!canvas) return;
+
+    const ctx = canvas.getContext('2d');
+    const img = document.getElementById('latest-picture');
+    
+    // Clear canvas
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    
+    // Draw the image if it's available
+    if (img && img.complete && img.naturalWidth > 0) {
+        // Set canvas dimensions to exactly match image dimensions
+        // This ensures the calibration image maintains the original aspect ratio
+        canvas.width = img.naturalWidth;
+        canvas.height = img.naturalHeight;
+        
+        // Draw image at full size
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        
+        // Draw first tilted line from (x1,0) to (x2,1) - purple line
+        ctx.lineWidth = 2;
+        ctx.strokeStyle = 'rgba(123, 97, 255, 0.8)'; // Purple line
+        ctx.beginPath();
+        ctx.moveTo(quadrantData.x1 * canvas.width, 0);
+        ctx.lineTo(quadrantData.x2 * canvas.width, canvas.height);
+        ctx.stroke();
+        
+        // Draw second tilted line from (0,y1) to (1,y2) - pink line
+        ctx.strokeStyle = 'rgba(255, 97, 123, 0.8)'; // Pink line
+        ctx.beginPath();
+        ctx.moveTo(0, quadrantData.y1 * canvas.height);
+        ctx.lineTo(canvas.width, quadrantData.y2 * canvas.height);
+        ctx.stroke();
+        
+        // Draw indicators for the lines
+        drawLineIndicators(ctx, canvas);
+    } else {
+        // If no image available, draw placeholder
+        canvas.width = 400;
+        canvas.height = 300;
+        
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
+        ctx.font = '16px Arial';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('Load image first to calibrate quadrants', canvas.width / 2, canvas.height / 2);
+    }
+}
+
+/**
+ * Draw indicators for line positions
+ * @param {CanvasRenderingContext2D} ctx - Canvas context
+ * @param {HTMLCanvasElement} canvas - Canvas element
+ */
+function drawLineIndicators(ctx, canvas) {
+    const indicatorRadius = 5;
+    
+    // First tilted line (purple) - draw indicators at both ends
+    ctx.fillStyle = 'rgba(123, 97, 255, 0.8)';
+    
+    // Start point at (x1,0)
+    ctx.beginPath();
+    ctx.arc(quadrantData.x1 * canvas.width, indicatorRadius * 2, indicatorRadius, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // End point at (x2,height)
+    ctx.beginPath();
+    ctx.arc(quadrantData.x2 * canvas.width, canvas.height - indicatorRadius * 2, indicatorRadius, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // Second tilted line (pink) - draw indicators at both ends
+    ctx.fillStyle = 'rgba(255, 97, 123, 0.8)';
+    
+    // Start point at (0,y1)
+    ctx.beginPath();
+    ctx.arc(indicatorRadius * 2, quadrantData.y1 * canvas.height, indicatorRadius, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // End point at (width,y2)
+    ctx.beginPath();
+    ctx.arc(canvas.width - indicatorRadius * 2, quadrantData.y2 * canvas.height, indicatorRadius, 0, Math.PI * 2);
+    ctx.fill();
+}
+
+// Make the functions available globally
+window.fetchQuadrantData = fetchQuadrantData;
+window.saveQuadrantData = saveQuadrantData;
+
+/**
+ * Update quadrant active state in Supabase
+ * @param {boolean} state - The new active state (true for active, false for inactive)
+ * @returns {Promise<boolean>} Whether the update was successful
+ */
+async function updateQuadrantActiveState(state) {
+    try {
+        console.log(`Updating quadrant active state to ${state}...`);
+        showToast(`Updating auto quadrant...`, 'info', 'Controls');
+        
+        // Update the local state
+        quadrantData.active = state;
+        
+        // Update the database record
+        const { data, error } = await supabaseClient
+            .from('quadrant')
+            .upsert({ 
+                id: 'main', 
+                active: state
+            }, { 
+                onConflict: 'id' 
+            });
+        
+        if (error) {
+            console.error(`Error updating quadrant active state:`, error);
+            showToast(`Failed to update auto quadrant`, 'error', 'Control Error');
+            return false;
+        }
+        
+        showToast(`Auto Quadrant ${state ? 'activated' : 'deactivated'}`, 'success', 'Controls');
+        return true;
+    } catch (err) {
+        console.error(`Error in updateQuadrantActiveState:`, err);
+        showToast(`Error updating auto quadrant`, 'error', 'Control Error');
+        return false;
+    }
+}
+
+// Make the function available globally
+window.updateQuadrantActiveState = updateQuadrantActiveState;
 
 /**
  * Update UI with calibration values
