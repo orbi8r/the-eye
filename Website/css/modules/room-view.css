@@ -253,13 +253,18 @@ input:checked + .toggle-slider:before {
     border-radius: 4px;
     overflow: hidden;
     background-color: rgba(0, 0, 0, 0.2);
+    /* Add flex display to center the canvas */
+    display: flex;
+    justify-content: center;
+    align-items: center;
 }
 
 #quadrant-calibration-canvas {
     display: block;
-    width: 100%;
+    max-width: 100%;
     height: auto;
     cursor: crosshair;
+    /* Remove width: 100% to prevent stretching */
 }
 
 .quadrant-input-controls {
